@@ -1,0 +1,1992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Jacket Weather</title>
+<style>
+html,body{margin:0;height:100%;background:#0b0f0c;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;color:#e8efe4}
+#app{position:fixed;inset:0}
+#app canvas{display:block;width:100%;height:100%}
+#ui{position:fixed;inset:0;pointer-events:none}
+.hide{display:none!important}
+.btn{pointer-events:auto;cursor:pointer}
+.screen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.green{color:#76b900}.gold{color:#f5c542}.red{color:#e5484d}
+/* HUD */
+#hud{position:absolute;inset:0}
+#hearts{position:absolute;left:16px;top:12px;font-size:26px;letter-spacing:3px;text-shadow:0 2px 0 #000}
+#hearts .off{color:#3a2326}#hearts .on{color:#e5484d}
+#cups{position:absolute;left:16px;top:46px;font-size:18px;font-weight:bold;color:#f5c542;text-shadow:0 2px 0 #000}
+#widgets{position:absolute;left:16px;top:76px;width:260px}
+#widgets .w{margin-bottom:7px;font-size:15px;font-weight:bold;color:#e8efe4;text-shadow:0 2px 0 #000;line-height:1.2}
+#widgets .w.big{font-size:20px;color:#f5c542;background:rgba(5,8,10,.55);border-left:4px solid #f5c542;padding:3px 8px}
+#widgets .w span{color:#cfd8c8}
+#widgets .w em{font-style:normal}
+#widgets .w i{display:block;height:9px;margin-top:3px;background:#26301f;border:1px solid #000;position:relative}
+#widgets .w b{position:absolute;left:0;top:0;bottom:0;background:#76b900}
+#meters{position:absolute;right:16px;top:12px;width:170px;font-size:11px;font-weight:bold}
+#meters div{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+#meters span{width:50px;text-align:right;color:#cfd8c8}
+#meters i{flex:1;height:7px;background:#26301f;border:1px solid #000;position:relative}
+#meters b{position:absolute;left:0;top:0;bottom:0;background:#76b900}
+#progress{position:absolute;left:50%;top:14px;width:min(46vw,420px);transform:translateX(-50%)}
+#pbar{position:relative;height:8px;background:rgba(0,0,0,.55);border:1px solid #76b900;border-radius:5px}
+#pfill{position:absolute;left:0;top:0;bottom:0;background:rgba(118,185,0,.45);border-radius:4px}
+#pbar .mk{position:absolute;top:-4px;width:4px;height:14px;background:#f5c542;border-radius:2px;margin-left:-2px}
+#phero{position:absolute;top:-5px;width:14px;height:16px;margin-left:-7px;background:#76b900;border:2px solid #0b0f0c;border-radius:50%;box-sizing:border-box}
+#prompt{position:absolute;left:0;right:0;top:22%;text-align:center;font-size:34px;font-weight:bold;color:#fff;text-shadow:0 3px 0 #000,0 0 14px rgba(118,185,0,.8);letter-spacing:2px}
+#count{position:absolute;left:0;right:0;top:32%;text-align:center;font-size:110px;font-weight:bold;color:#f5c542;text-shadow:0 6px 0 #000}
+#hint{position:absolute;left:0;right:0;bottom:10px;text-align:center;font-size:13px;color:#cfd8c8;text-shadow:0 1px 0 #000}
+#banner{position:absolute;left:50%;top:15%;transform:translateX(-50%);max-width:80vw;text-align:center;font-size:24px;font-weight:bold;color:#fff;background:rgba(5,8,10,.78);border:2px solid #f5c542;border-radius:8px;padding:8px 18px;text-shadow:0 2px 0 #000}
+#emeters{margin-top:12px;font-size:15px;color:#cfd8c8}
+#pops .pop{position:absolute;font-weight:bold;font-size:22px;color:#f5c542;text-shadow:0 2px 0 #000;transform:translate(-50%,-50%);pointer-events:none}
+/* dialogue */
+#dlg{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);width:min(760px,94vw);box-sizing:border-box;background:rgba(5,8,10,.93);border:2px solid #76b900;border-radius:8px;padding:22px 20px 14px;min-height:128px;pointer-events:auto}
+#dname{position:absolute;left:14px;top:-15px;background:#76b900;color:#0b0f0c;font-weight:bold;padding:3px 12px;border-radius:4px;font-size:16px}
+#dtext{font-size:20px;line-height:1.35;min-height:54px}
+#dchoices{margin-top:8px}
+#dchoices .btn{padding:6px 10px;margin-top:4px;border-radius:4px;font-size:18px;color:#cfd8c8}
+#dchoices .btn.sel{background:rgba(118,185,0,.25);color:#76b900;font-weight:bold}
+#dnext{position:absolute;right:16px;bottom:8px;color:#76b900;font-size:16px}
+/* title */
+#title{background:linear-gradient(90deg,rgba(11,15,12,.92) 0%,rgba(11,15,12,.55) 45%,rgba(11,15,12,0) 75%);align-items:flex-start;padding-left:8vw;box-sizing:border-box}
+#title h1{margin:0;font-size:min(9vw,84px);color:#76b900;letter-spacing:3px;text-shadow:0 5px 0 #1d3300;line-height:.95}
+#title .tag{margin:10px 0 28px;color:#8a968a;font-size:16px}
+#menu.small .item{font-size:19px;padding:3px 0;width:360px}
+#menu .item{font-size:28px;font-weight:bold;padding:6px 0;color:#9aa89a;width:220px}
+#menu .item.sel{color:#f5c542}
+#menu .item.sel:before{content:"> ";color:#f5c542}
+#title .ctl{position:absolute;left:8vw;bottom:18px;color:#5d695d;font-size:13px}
+/* newspaper */
+#front{background:rgba(11,15,12,.93)}
+#paper{pointer-events:auto;width:min(640px,92vw);max-height:92vh;box-sizing:border-box;background:linear-gradient(#ece4cb,#ded5b8);color:#16140f;padding:22px 34px 18px;font-family:Georgia,"Times New Roman",serif;box-shadow:8px 10px 0 #000;text-align:center;transform:rotate(-.6deg)}
+#paper .mast{font-size:min(8.4vw,54px);font-weight:bold;letter-spacing:2px;line-height:1;border-bottom:4px double #16140f;padding-bottom:10px}
+#paper .dl{display:flex;justify-content:space-between;font-size:12px;font-weight:bold;letter-spacing:1px;padding:5px 0;border-bottom:1px solid #16140f}
+#paper h2{font-size:min(6.6vw,38px);line-height:1.08;margin:16px 0 8px}
+#paper .sub{font-style:italic;font-size:18px;color:#3a362c;margin-bottom:14px}
+#paper #flines p{margin:5px 0;font-size:16px;text-align:left}
+#paper .cols{display:flex;gap:14px;margin:10px 0}
+#paper .cols i{flex:1;height:44px;background:repeating-linear-gradient(#b9b19a 0 2px,transparent 2px 7px)}
+#paper .go{font-size:14px;font-weight:bold;color:#7a2a2d;margin-top:6px;font-family:"Trebuchet MS",sans-serif}
+/* cards */
+.card{pointer-events:auto;background:#101a12;border:2px solid #f5c542;border-radius:8px;padding:30px 46px;text-align:center;min-width:min(420px,80vw)}
+.card h1{margin:0 0 18px;font-size:min(8vw,46px);color:#f5c542;text-shadow:0 3px 0 #3a2e0a}
+.card p{margin:8px 0;font-size:20px}
+.card .go{margin-top:22px;color:#76b900;font-size:15px}
+#endcard,#coming,#retry,#credits,#pause{background:rgba(5,8,10,.82)}
+#retry .card{border-color:#e5484d}#retry h1{color:#e5484d;text-shadow:0 3px 0 #3a0c0e}
+#pause h1{color:#76b900;text-shadow:none}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="ui">
+  <div id="hud" class="hide">
+    <div id="hearts"></div><div id="cups"></div><div id="widgets"></div><div id="meters"></div>
+    <div id="progress"><div id="pbar"><div id="pfill"></div><i id="phero"></i></div></div>
+    <div id="banner" class="hide"></div><div id="prompt"></div><div id="count"></div><div id="pops"></div><div id="hint" class="hide"></div>
+  </div>
+  <div id="dlg" class="hide"><div id="dname"></div><div id="dtext"></div><div id="dchoices"></div><div id="dnext">&#9660;</div></div>
+  <div id="title" class="screen hide">
+    <h1>JACKET<br>WEATHER</h1>
+    <div class="tag">a cautionary tale in several chapters (not financial advice)</div>
+    <div id="menu"></div>
+    <div class="ctl">Arrows/AD lane &middot; Space jump &middot; Down slide &middot; E talk &middot; P pause &middot; M mute &middot; R restart</div>
+  </div>
+  <div id="front" class="screen hide"><div id="paper" class="btn">
+    <div class="mast" id="fmast"></div>
+    <div class="dl"><span id="fdate"></span><span id="fchap"></span></div>
+    <h2 id="fhead"></h2><div class="sub" id="fsub"></div>
+    <div id="flines"></div><div class="cols"><i></i><i></i><i></i></div>
+    <div class="go">Press ENTER or SPACE to read on</div>
+  </div></div>
+  <div id="endcard" class="screen hide"><div class="card btn"><h1 id="etitle"></h1><div id="elines"></div><div id="emeters"></div><div class="go">Press ENTER to continue</div></div></div>
+  <div id="coming" class="screen hide"><div class="card btn"><h1>TO BE CONTINUED</h1><p id="cmsg1"></p><p>Press R to replay the prologue.</p><div class="go">ENTER: title screen</div></div></div>
+  <div id="retry" class="screen hide"><div class="card btn"><h1>TRIPPED UP</h1><p id="retrymsg">Out of hearts! You will restart from the last stop.</p><div class="go">Press ENTER to retry</div></div></div>
+  <div id="credits" class="screen hide"><div class="card btn"><h1>THE END</h1><p>Thank you for playing Jacket Weather.</p><p>A work of parody and fiction. Any resemblance to a leather jacket is entirely intentional.</p><div class="go" id="again">Press ENTER to play again</div></div></div>
+  <div id="pause" class="screen hide"><div class="card"><h1>PAUSED</h1><p>Press P to resume</p></div></div>
+</div>
+<script src="three.min.js"></script>
+<script src="chapters.bundle.js"></script>
+<script>
+'use strict';
+/* ============================================================
+   JACKET WEATHER - 3D lane runner (stage 1: engine + prologue)
+   Sections: config, util, pure logic (testable), audio, save,
+   input, three.js setup, builders, world, game, UI, chapters, main.
+   ============================================================ */
+
+/* ---------- config ---------- */
+const COL = { green: 0x76b900, red: 0xe5484d, gold: 0xf5c542 };
+const METER_KEYS = ['stock', 'board', 'washington', 'beijing'];
+const METER_LABELS = { stock: 'STOCK', board: 'BOARD', washington: 'WASH', beijing: 'BEIJ' };
+const DEFAULT_METERS = { stock: 50, board: 50, washington: 50, beijing: 50 };
+const DT = 1 / 60;
+const CHUNK = 32, CHUNK_POOL = 7, TPL_COUNT = 8;
+const OUTFITS = {
+  // the hero: swept-back hair (black in 1993, silver once the jacket is awarded), thin dark rectangular glasses, friendly smile
+  young:  { look: 'male', swept: true, skin: 0xe8b890, hair: 0x15110e, shirt: 0xf4f4ee, sleeve: 0xf4f4ee, pants: 0x2f3b5c, shoe: 0x222222, tie: 0xe5484d, glasses: true },
+  jacket: { look: 'male', swept: true, skin: 0xe8b890, hair: 0xc9ced6, brow: 0x6b6f77, shirt: 0x14161a, sleeve: 0x14161a, tee: 0x24262c, pants: 0x2b3a5a, shoe: 0x222222, collar: 0x2a2d32, jacket: true, glasses: true }
+};
+
+/* ---------- util ---------- */
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = t => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
+
+/*PURE-START*/
+/* ---------- pure logic: no THREE, no DOM (unit-tested in node) ---------- */
+const LANES = [-2, 0, 2];
+const LANE_T = 0.12, JUMP_T = 0.62, PEAK = 1.6, SLIDE_T = 0.6, BUF_T = 0.12;
+const HERO = { hw: 0.35, hd: 0.3, h: 1.8, hSlide: 0.8 };
+const CLEAR = 25;
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function speedAt(ch, d) { return ch.speed.base + (ch.speed.max - ch.speed.base) * clamp(d / ch.length, 0, 1); }
+
+// Track layout: sorted [{z, lane, kind, y?}]. Obstacles are laid in hand-designed patterns that always
+// leave a passable option; spacing between rows is >= 0.9s of travel; stops are cleared by CLEAR metres.
+function generateTrack(ch, seed) {
+  if (ch.noTrack) return [];   // the chapter module places every obstacle/pickup itself (boss fights)
+  const rng = mulberry32((seed | 0) * 7919 + 13), out = [];
+  const stops = ch.stops.map(s => s.at), ZONE = CLEAR + 2;
+  const kinds = { low: [], high: [], block: [], mover: [] }, defs = {};
+  ch.obstacles.forEach(k => { kinds[k.type].push(k); defs[k.id] = k; });
+  const has = t => kinds[t].length > 0;
+  const pick = t => {   // weighted by def.weight
+    const L = kinds[t]; let tot = 0; L.forEach(k => { tot += k.weight || 1; });
+    let r = rng() * tot;
+    for (const k of L) { r -= k.weight || 1; if (r <= 0) return k.id; }
+    return L[L.length - 1].id;
+  };
+  const reserved = ch.reserved || [];
+  const blocked = (z, l) => reserved.some(q => z >= q.z0 && z <= q.z1 && (q.lane == null || q.lane === l));
+  const lane = () => Math.floor(rng() * 3) - 1;
+  const typ = () => { const ts = ['low', 'high', 'block'].filter(has); return ts[Math.floor(rng() * ts.length)]; };
+  const push = (z, l, kind, y) => {
+    const e = { z: Math.round(z * 100) / 100, lane: l, kind };
+    if (y !== undefined) e.y = y;
+    out.push(e);
+  };
+  (ch.tutorial || []).forEach(t => { if (t.obstacle) t.obstacle.lanes.forEach(l => push(t.obstacle.z, l, t.obstacle.kind)); });
+  const pats = [
+    { d: 0,    w: 4, ok: () => true, rows: () => [[[lane(), typ()]]] },
+    { d: 0,    w: 2, ok: () => has('low'), rows: () => [[[-1, 'low'], [0, 'low'], [1, 'low']]] },
+    { d: 0.1,  w: 2, ok: () => has('high'), rows: () => [[[-1, 'high'], [0, 'high'], [1, 'high']]] },
+    { d: 0.2,  w: 2, ok: () => has('block'), rows: () => { const f = lane(); return [[-1, 0, 1].filter(l => l !== f).map(l => [l, 'block'])]; } },
+    { d: 0.15, w: 2, ok: () => has('mover'), rows: () => [[[lane(), 'mover']]] },
+    { d: 0.3,  w: 2, ok: () => has('low') && has('high'), rows: () => { const L = [-1, 0, 1].sort(() => rng() - 0.5); return [[[L[0], 'low'], [L[1], 'high']]]; } },
+    { d: 0.5,  w: 2, ok: () => has('block'), rows: () => { const a = lane(); let b = lane(); while (b === a) b = lane(); return [[[a, 'block']], [[b, 'block']], [[lane(), 'block']]]; } }
+  ];
+  const segs = []; let a = (ch.tutorialEnd || 0) + 6;
+  stops.forEach(s => { segs.push([a, s - ZONE]); a = s + ZONE; });
+  segs.forEach(([a0, b0]) => {
+    let z = a0 + 4;
+    while (z < b0) {
+      const d = clamp((z - a0) / (b0 - a0), 0, 1);
+      const cand = pats.filter(p => p.d <= d + 1e-4 && p.ok());
+      let tot = 0; cand.forEach(p => { tot += p.w; });
+      let r = rng() * tot, p = cand[0];
+      for (const c of cand) { r -= c.w; if (r <= 0) { p = c; break; } }
+      const rows = p.rows(), v = speedAt(ch, z + 30), step = v * 0.9 * 1.15;
+      if (z + (rows.length - 1) * step > b0) break;
+      if (rows.some((row, i) => row.some(([l]) => blocked(z + i * step, l)))) { z += v * 0.5; continue; }   // keep reserved zones (rule gates) clear
+      rows.forEach((row, i) => row.forEach(([l, t]) => {
+        const id = pick(t), d = defs[id];
+        if (d.type === 'mover' && !moverFull(d) && l === 0) l = rng() < 0.5 ? -1 : 1;   // tall movers sweep lane<->centre
+        push(z + i * step, l, id);
+      }));
+      z += (rows.length - 1) * step + v * 0.9 * (1.1 + (1 - d) * 1.1 + rng() * 0.4);
+    }
+  });
+  if (ch.collectible) {
+    const cid = ch.collectible.id, dens = ch.cupDensity == null ? 0.6 : ch.cupDensity;
+    const lows = new Set((ch.obstacles.filter(k => k.type === 'low')).map(k => k.id));
+    const lowEntries = out.filter(e => lows.has(e.kind) && e.z >= (ch.tutorialEnd || 0));
+    const orows = [...new Set(out.map(e => e.z))].sort((x, y) => x - y);
+    const marks = [4].concat(orows);
+    stops.forEach(s => marks.push(s - ZONE, s + ZONE));
+    marks.sort((x, y) => x - y);
+    for (let i = 0; i < marks.length - 1; i++) {
+      const m0 = marks[i], m1 = marks[i + 1], mid = (m0 + m1) / 2;
+      if (stops.some(s => Math.abs(mid - s) < ZONE) || m1 - m0 < 14 || rng() > dens) continue;
+      const l = lane();
+      for (let k = 0; k < 5; k++) push(mid - 3 + k * 1.5, l, cid, 0);
+    }
+    lowEntries.forEach(e => {
+      if (rng() > dens * 0.7 || !stops.every(s => Math.abs(e.z - s) >= CLEAR + 4)) return;
+      [-3, -1.5, 0, 1.5, 3].forEach((dz, k) => push(e.z + dz, e.lane, cid, [0.3, 1.1, 1.7, 1.1, 0.3][k]));
+    });
+  }
+  out.sort((p, q) => p.z - q.z || p.lane - q.lane || (p.kind < q.kind ? -1 : p.kind > q.kind ? 1 : 0) || (p.y || 0) - (q.y || 0));
+  return out;
+}
+
+// Groups obstacle entries into rows: {z, clear, act:[laneA,laneB,laneC] each 'run'|'jump'|'slide'|'block'}
+function applyRowEntry(row, def, lane) {
+  row.clear = Math.max(row.clear, def.d / 2 + HERO.hd + 0.25);
+  if (def.type === 'mover' && moverFull(def)) row.act = ['jump', 'jump', 'jump'];
+  else if (def.type === 'mover') { row.act[lane + 1] = 'block'; row.act[1] = 'block'; }
+  else row.act[lane + 1] = def.type === 'low' ? 'jump' : def.type === 'high' ? 'slide' : 'block';
+}
+function trackRows(ch, list) {
+  const defs = {}; ch.obstacles.forEach(k => { defs[k.id] = k; });
+  const rows = []; let cur = null;
+  for (const e of list) {
+    const def = defs[e.kind];
+    if (!def) continue;
+    if (!cur || Math.abs(cur.z - e.z) > 1e-6) { cur = { z: e.z, act: ['run', 'run', 'run'], clear: 0 }; rows.push(cur); }
+    applyRowEntry(cur, def, e.lane);
+  }
+  return rows;
+}
+// insert one obstacle (spawned during play) into the sorted rows list; `from` = hero's bot pointer so it never moves behind it
+function insertRowEntry(rows, z, lane, def, from) {
+  let k = rows.length;
+  while (k > 0 && rows[k - 1].z > z + 1e-6) k--;
+  if (k > 0 && Math.abs(rows[k - 1].z - z) <= 1e-6) { applyRowEntry(rows[k - 1], def, lane); return; }
+  const row = { z, act: ['run', 'run', 'run'], clear: 0 };
+  applyRowEntry(row, def, lane);
+  rows.splice(k, 0, row);
+}
+// Low movers sweep the whole road (jump over them). Tall movers sweep between their lane and the centre lane.
+function moverFull(def) { return def.h <= 0.85; }
+function moverX(ob, t) {
+  const ph = t * 0.9 + ob.z * 0.37 + ob.lane * 1.3;
+  return moverFull(ob.def) ? 2 * Math.sin(ph) : LANES[ob.lane + 1] * (0.5 + 0.5 * Math.sin(ph));
+}
+function heroHits(h, ob, t) {
+  const def = ob.def, ox = def.type === 'mover' ? moverX(ob, t) : LANES[ob.lane + 1];
+  if (Math.abs(h.x - ox) >= HERO.hw + def.w / 2 || Math.abs(h.dist - ob.z) >= HERO.hd + def.d / 2) return false;
+  const top = h.y + (h.slideT > 0 ? HERO.hSlide : HERO.h), y0 = def.y0 || 0;
+  return h.y < y0 + def.h && top > y0;
+}
+
+function newHero() {
+  return { x: 0, y: 0, dist: 0, lane: 0, laneFromX: 0, laneT: 1, jumpT: 0, slideT: 0, dive: false, jumpBuf: 0, slideBuf: 0, botIdx: 0, gateIdx: 0, ev: [] };
+}
+function requestLane(h, dir) {
+  const n = clamp(h.lane + dir, -1, 1);
+  if (n === h.lane) return;
+  h.laneFromX = h.x; h.lane = n; h.laneT = 0; h.ev.push('lane');
+}
+function stepHero(h, dt) {
+  if (h.laneT < 1) {
+    h.laneT = Math.min(1, h.laneT + dt / LANE_T);
+    h.x = h.laneFromX + (LANES[h.lane + 1] - h.laneFromX) * smooth(h.laneT);
+  }
+  const grounded = h.jumpT === 0;
+  if (h.jumpBuf > 0 && grounded) { h.jumpT = 1e-6; h.slideT = 0; h.jumpBuf = 0; h.ev.push('jump'); }
+  else if (h.slideBuf > 0) {
+    if (grounded && h.slideT === 0) { h.slideT = SLIDE_T; h.slideBuf = 0; h.ev.push('slide'); }
+    else if (!grounded && !h.dive) { h.dive = true; if (h.jumpT < JUMP_T / 2) h.jumpT = JUMP_T - h.jumpT; }
+  }
+  if (h.jumpT > 0) {
+    h.jumpT += dt * (h.dive ? 2.4 : 1);
+    if (h.jumpT >= JUMP_T) {
+      h.jumpT = 0; h.y = 0; h.dive = false; h.ev.push('land');
+      if (h.slideBuf > 0) { h.slideT = SLIDE_T; h.slideBuf = 0; h.ev.push('slide'); }
+    } else { const u = h.jumpT / JUMP_T; h.y = 4 * PEAK * u * (1 - u); }
+  }
+  if (h.slideT > 0) h.slideT = Math.max(0, h.slideT - dt);
+  h.jumpBuf = Math.max(0, h.jumpBuf - dt); h.slideBuf = Math.max(0, h.slideBuf - dt);
+}
+
+// Autopilot / test bot: reads the next obstacle row and picks lane + jump/slide. `gates` are lane goals
+// ({at, lane}: rule gates, optional doors); `cups` (optional) are ground pickups it may drift towards when the road is quiet.
+function botChase(h, speed, cups, limit, out) {
+  if (!cups) return;
+  let best = null;
+  for (const c of cups) {
+    if (c.got || c.y > 0.5 || c.z < h.dist + 3 || c.z > h.dist + 30 || c.z > limit) continue;
+    if (!best || c.z < best.z) best = c;
+  }
+  if (best) out.lane = best.lane;
+}
+function botDecide(h, rows, speed, gates, cups) {
+  while (h.botIdx < rows.length && rows[h.botIdx].z + rows[h.botIdx].clear < h.dist) h.botIdx++;
+  const out = { lane: h.lane, jump: false, slide: false }, r = rows[h.botIdx];
+  let g = null;
+  if (gates) {   // lane goals: be in the goal lane when it is reached (no rows are placed near one)
+    while ((h.gateIdx | 0) < gates.length && gates[h.gateIdx | 0].at < h.dist - 0.1) h.gateIdx = (h.gateIdx | 0) + 1;
+    g = gates[h.gateIdx | 0] || null;
+    if (g && (!r || r.z > g.at)) {
+      if (g.at - h.dist <= 14) out.lane = g.lane; else botChase(h, speed, cups, g.at - 18, out);
+      return out;
+    }
+  }
+  if (!r) { botChase(h, speed, cups, 1e9, out); return out; }
+  const dz = r.z - h.dist;
+  if (dz > speed * 1.1) { botChase(h, speed, cups, Math.min(r.z - speed * 1.4 - 2, g ? g.at - 18 : 1e9), out); return out; }
+  let best = h.lane, bs = 1e9;
+  for (let l = -1; l <= 1; l++) {
+    const a = r.act[l + 1], s = (a === 'run' ? 0 : a === 'block' ? 99 : 1) + Math.abs(l - h.lane) * 0.2;
+    if (s < bs) { bs = s; best = l; }
+  }
+  out.lane = best;
+  if (best === h.lane && h.laneT >= 1) {
+    const a = r.act[best + 1];
+    if (a === 'jump' && dz <= speed * 0.28 && h.jumpT === 0) out.jump = true;
+    if (a === 'slide' && dz <= speed * 0.15 && h.jumpT === 0 && h.slideT === 0) out.slide = true;
+  }
+  return out;
+}
+function applyBot(h, cmd) {
+  if (cmd.lane !== h.lane && h.laneT >= 1) requestLane(h, Math.sign(cmd.lane - h.lane));
+  if (cmd.jump) h.jumpBuf = BUF_T;
+  if (cmd.slide) h.slideBuf = BUF_T;
+}
+/*PURE-END*/
+
+/* ---------- audio (WebAudio only, lazy, never throws) ---------- */
+const audio = {
+  ctx: null, muted: false,
+  init() {
+    try {
+      if (!this.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) this.ctx = new AC(); }
+      if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+    } catch (e) { this.ctx = null; }
+  },
+  tone(f, d, type, vol, slide, delay) {
+    if (!this.ctx || this.muted) return;
+    try {
+      const c = this.ctx, t = c.currentTime + (delay || 0), o = c.createOscillator(), g = c.createGain();
+      o.type = type || 'square';
+      o.frequency.setValueAtTime(f, t);
+      if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + d);
+      g.gain.setValueAtTime(vol || 0.05, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(g); g.connect(c.destination);
+      o.start(t); o.stop(t + d + 0.02);
+    } catch (e) { /* audio unavailable */ }
+  },
+  sfx: {
+    lane(a) { a.tone(700, 0.08, 'sine', 0.035, 300); },
+    jump(a) { a.tone(280, 0.14, 'square', 0.04, 620); },
+    slide(a) { a.tone(420, 0.2, 'sawtooth', 0.03, 120); },
+    land(a) { a.tone(110, 0.08, 'triangle', 0.05, 60); },
+    collect(a) { a.tone(880, 0.07, 'square', 0.04); a.tone(1320, 0.12, 'square', 0.04, null, 0.07); },
+    hit(a) { a.tone(220, 0.3, 'sawtooth', 0.07, 60); },
+    select(a) { a.tone(520, 0.06, 'square', 0.04); },
+    blip(a) { a.tone(360 + Math.random() * 80, 0.04, 'triangle', 0.05); },
+    tick(a) { a.tone(660, 0.1, 'square', 0.04); },
+    go(a) { a.tone(990, 0.3, 'square', 0.05); },
+    fanfare(a) { [523, 659, 784, 1046].forEach((f, i) => a.tone(f, 0.22, 'square', 0.05, null, i * 0.14)); a.tone(1046, 0.5, 'triangle', 0.05, null, 0.6); }
+  }
+};
+function sfx(n) { try { audio.sfx[n](audio); } catch (e) { /* ignore */ } }
+
+// procedural looping beat that speeds up with the hero
+const music = {
+  next: 0, step: 0,
+  bass: [0, 0, 7, 0, 5, 5, 3, 5, 0, 0, 7, 0, 10, 8, 7, 5],
+  lead: [12, -1, 15, -1, 19, -1, 15, -1, 17, -1, 14, -1, 15, -1, 12, -1],
+  update(speed01) {
+    const c = audio.ctx;
+    if (!c || audio.muted) return;
+    if (this.next < c.currentTime) this.next = c.currentTime + 0.05;
+    const sd = 60 / (112 + speed01 * 44) / 4;
+    while (this.next < c.currentTime + 0.15) { this.play(this.step % 16, this.next - c.currentTime); this.step++; this.next += sd; }
+  },
+  play(s, d) {
+    if (s % 4 === 0) audio.tone(130, 0.12, 'sine', 0.09, 45, d);
+    if (s % 2 === 1) audio.tone(9000, 0.03, 'square', 0.008, null, d);
+    audio.tone(55 * Math.pow(2, this.bass[s] / 12), 0.12, 'triangle', 0.07, null, d);
+    if (this.lead[s] >= 0) audio.tone(110 * Math.pow(2, this.lead[s] / 12), 0.1, 'square', 0.018, null, d);
+  }
+};
+
+/* ---------- save (localStorage, optional) ---------- */
+const SAVE_KEY = 'jacketWeather.save.v1';
+function readSave() {
+  try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && typeof s.unlocked === 'number') return s; } catch (e) { /* none */ }
+  return null;
+}
+function writeSave(unlocked, meters) {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ unlocked, meters })); } catch (e) { /* ignore */ }
+}
+
+/* ---------- input ---------- */
+const input = {
+  k: {}, pressed: {},
+  endStep() { this.pressed = {}; },
+  confirm() { return !!(this.pressed.act || this.pressed.space || this.pressed.tap); }
+};
+const KEYMAP = {
+  ArrowLeft: ['left'], KeyA: ['left'], ArrowRight: ['right'], KeyD: ['right'],
+  Space: ['jump', 'space'], ArrowUp: ['jump', 'up'], KeyW: ['jump', 'up'],
+  ArrowDown: ['slide', 'down'], KeyS: ['slide', 'down'],
+  KeyE: ['act'], Enter: ['act'], Digit1: ['n1'], Digit2: ['n2'], Numpad1: ['n1'], Numpad2: ['n2'],
+  KeyP: ['pause'], KeyM: ['mute'], KeyR: ['restart'], Escape: ['back']
+};
+addEventListener('keydown', e => {
+  const a = KEYMAP[e.code];
+  if (!a) return;
+  e.preventDefault();
+  audio.init();
+  if (!e.repeat) a.forEach(n => { input.pressed[n] = true; });
+});
+addEventListener('contextmenu', e => e.preventDefault());
+const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+let ptr = null;
+addEventListener('pointerdown', e => {
+  audio.init();
+  if (e.target && e.target.closest && e.target.closest('.btn')) { ptr = null; return; }
+  ptr = { x: e.clientX, y: e.clientY };
+});
+addEventListener('pointerup', e => {
+  if (!ptr) return;
+  const dx = e.clientX - ptr.x, dy = e.clientY - ptr.y, ax = Math.abs(dx), ay = Math.abs(dy);
+  ptr = null;
+  if (Math.max(ax, ay) > 28) {
+    if (ax > ay) input.pressed[dx > 0 ? 'right' : 'left'] = true;
+    else input.pressed[dy < 0 ? 'jump' : 'slide'] = true;
+  } else input.pressed.tap = true;
+});
+// cards and the newspaper act as a tap target (they are .btn, so the generic tap handler skips them)
+document.querySelectorAll('.card.btn, #paper').forEach(el => el.addEventListener('click', () => { input.pressed.tap = true; }));
+
+/* ============================================================
+   THREE.JS SETUP + LOW-POLY BUILDERS
+   ============================================================ */
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 260);
+let renderer = null;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  document.getElementById('app').appendChild(renderer.domElement);
+} catch (e) {
+  renderer = null;
+  document.getElementById('app').textContent = 'WebGL is not available in this browser.';
+}
+const hemi = new THREE.HemisphereLight(0xffffff, 0x888866, 0.9);
+const sun = new THREE.DirectionalLight(0xffffff, 0.9);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 50 });
+sun.shadow.bias = -0.0006;
+sun.shadow.camera.updateProjectionMatrix();
+const sunOffset = new THREE.Vector3(7, 14, 6);
+scene.add(hemi, sun, sun.target);
+const world = new THREE.Group();
+scene.add(world);
+const sunDisc = new THREE.Mesh(new THREE.SphereGeometry(14, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffd27a, fog: false }));
+scene.add(sunDisc);
+function resize() {
+  if (renderer) renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize);
+resize();
+
+// shared geometry / materials
+const UNIT = new THREE.BoxGeometry(1, 1, 1);
+const matCache = {}, cylCache = {};
+const mat = hex => matCache[hex] || (matCache[hex] = new THREE.MeshLambertMaterial({ color: hex }));
+const BAKED = new THREE.MeshLambertMaterial({ vertexColors: true });
+let owned = { geo: [], tex: [], mat: [] };
+
+function box(parent, w, h, d, color, x, y, z) {
+  const m = new THREE.Mesh(UNIT, mat(color));
+  m.scale.set(w, h, d); m.position.set(x || 0, y || 0, z || 0); m.castShadow = true;
+  parent.add(m);
+  return m;
+}
+function cyl(parent, rt, rb, h, seg, color, x, y, z) {
+  const key = rt + '_' + rb + '_' + h + '_' + seg;
+  const g = cylCache[key] || (cylCache[key] = new THREE.CylinderGeometry(rt, rb, h, seg));
+  const m = new THREE.Mesh(g, mat(color));
+  m.position.set(x || 0, y || 0, z || 0); m.castShadow = true;
+  parent.add(m);
+  return m;
+}
+function grp(parent, x, y, z) { const g = new THREE.Group(); g.position.set(x || 0, y || 0, z || 0); if (parent) parent.add(g); return g; }
+
+// canvas text sign (the only textured thing in the game). Plane size is exactly w x h; the canvas is power-of-two
+// and the drawing is pre-scaled so the text is not stretched. Shared with chapter modules as kit.textPlane.
+const signCache = {};
+function makeSign(text, w, h, o) {
+  o = o || {};
+  const key = [text, w, h, o.bg, o.fg].join('|');   // identical signs share one texture / geometry / material
+  const hit = signCache[key];
+  if (hit) { const m = new THREE.Mesh(hit.geo, hit.mat); m.userData.noBake = true; return m; }
+  const cv = document.createElement('canvas');
+  const vh = 256 * h / w;   // virtual canvas height at the plane's aspect
+  cv.width = 256; cv.height = [32, 64, 128, 256, 512].reduce((a, b) => Math.abs(Math.log(b / vh)) < Math.abs(Math.log(a / vh)) ? b : a);
+  const g = cv.getContext('2d');
+  g.scale(1, cv.height / vh);
+  g.fillStyle = o.bg || '#e5484d'; g.fillRect(0, 0, 256, vh);
+  g.strokeStyle = o.fg || '#ffffff'; g.lineWidth = 6; g.strokeRect(5, 5, 246, vh - 10);
+  const lines = String(text).split('\n');
+  let fs = Math.floor(vh / (lines.length + 0.7));
+  const fnt = s => 'bold ' + s + 'px "Trebuchet MS",Arial,sans-serif';
+  g.font = fnt(fs);
+  while (fs > 8 && lines.some(l => g.measureText(l).width > 230)) { fs -= 2; g.font = fnt(fs); }
+  g.fillStyle = o.fg || '#ffffff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  lines.forEach((l, i) => g.fillText(l, 128, (i + 0.5) * vh / lines.length));
+  const tex = new THREE.CanvasTexture(cv);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex }));
+  owned.tex.push(tex); owned.geo.push(m.geometry); owned.mat.push(m.material);
+  signCache[key] = { geo: m.geometry, mat: m.material };
+  m.userData.noBake = true;
+  return m;
+}
+
+// merge a Group of flat-coloured meshes into one vertex-coloured geometry (flat normals)
+function bakeGeo(group) {
+  group.updateMatrixWorld(true);
+  const pos = [], nor = [], col = [], c = new THREE.Color(), v = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+  const e1 = new THREE.Vector3(), e2 = new THREE.Vector3();
+  group.traverse(o => {
+    if (!o.isMesh || o.userData.noBake) return;
+    const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry, p = g.attributes.position;
+    const mt = o.material;
+    if (mt && mt.color) c.copy(mt.color); else c.set(0xffffff);
+    if (mt && mt.emissive && mt.emissive.getHex() !== 0) {   // glowing parts (lamps) bake as brighter vertex colour
+      const k = mt.emissiveIntensity == null ? 1 : mt.emissiveIntensity;
+      c.r = Math.min(1, c.r + mt.emissive.r * k); c.g = Math.min(1, c.g + mt.emissive.g * k); c.b = Math.min(1, c.b + mt.emissive.b * k);
+    }
+    for (let i = 0; i + 2 < p.count; i += 3) {
+      for (let k = 0; k < 3; k++) v[k].fromBufferAttribute(p, i + k).applyMatrix4(o.matrixWorld);
+      e1.subVectors(v[1], v[0]); e2.subVectors(v[2], v[0]); e1.cross(e2).normalize();
+      for (let k = 0; k < 3; k++) { pos.push(v[k].x, v[k].y, v[k].z); nor.push(e1.x, e1.y, e1.z); col.push(c.r, c.g, c.b); }
+    }
+  });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  owned.geo.push(geo);
+  return geo;
+}
+// returns a Group holding the baked mesh plus any noBake (textured) meshes, world transforms preserved
+function bake(group) {
+  group.updateMatrixWorld(true);
+  const out = new THREE.Group(), extras = [];
+  group.traverse(o => { if (o.isMesh && o.userData.noBake) extras.push(o); });
+  const m = new THREE.Mesh(bakeGeo(group), BAKED);
+  m.castShadow = true;
+  out.add(m);
+  extras.forEach(o => { o.matrix.copy(o.matrixWorld).decompose(o.position, o.quaternion, o.scale); out.add(o); });
+  return out;
+}
+
+// A baked "kind": one shared vertex-coloured geometry plus any textured (text) meshes, instanced cheaply.
+function makeKind(group) {
+  group.updateMatrixWorld(true);
+  const extras = [];
+  group.traverse(o => { if (o.isMesh && o.userData.noBake) extras.push({ geometry: o.geometry, material: o.material, m: o.matrixWorld.clone() }); });
+  return { geo: bakeGeo(group), extras };
+}
+function instantiate(kind, shadow) {
+  const base = new THREE.Mesh(kind.geo, BAKED);
+  base.castShadow = !!shadow;
+  if (!kind.extras.length) return base;
+  const g = new THREE.Group();
+  g.add(base);
+  kind.extras.forEach(e => {
+    const m = new THREE.Mesh(e.geometry, e.material);
+    e.m.decompose(m.position, m.quaternion, m.scale);
+    g.add(m);
+  });
+  return g;
+}
+
+// rigged low-poly person: root > rig > limbs. Faces -Z.
+function tint(c, k) { return new THREE.Color(c).multiplyScalar(k).getHex(); }
+function makeFigure(L) {
+  const F = L.look === 'female' || L.female === true;   // 'male' is the default
+  const sw = F ? 0.5 : 0.6, aw = F ? 0.34 : 0.39;       // torso width / arm offset: slightly narrower shoulders for the female look
+  const root = new THREE.Group(), rig = grp(root), f = { root, rig, L };
+  const leg = x => { const p = grp(rig, x, 0.78, 0); box(p, 0.22, 0.72, 0.24, L.pants, 0, -0.36, 0); box(p, 0.24, 0.12, 0.34, L.shoe, 0, -0.74, -0.05); return p; };
+  f.legL = leg(F ? -0.13 : -0.14); f.legR = leg(F ? 0.13 : 0.14);
+  const torso = grp(rig, 0, 0.78, 0);
+  box(torso, sw, 0.62, 0.3, L.shirt, 0, 0.31, 0);
+  if (L.tie) { box(torso, 0.09, 0.42, 0.02, L.tie, 0, 0.34, -0.16); box(torso, 0.2, 0.06, 0.03, 0xffffff, 0, 0.58, -0.155); }
+  if (L.jacket) {   // black leather jacket over a black tee, with the collar
+    box(torso, 0.2, 0.4, 0.02, L.tee || 0x24262c, 0, 0.38, -0.158);
+    box(torso, 0.12, 0.12, 0.05, L.collar, -0.15, 0.6, -0.15); box(torso, 0.12, 0.12, 0.05, L.collar, 0.15, 0.6, -0.15);
+    f.flap = grp(torso, 0, 0.14, 0.15); box(f.flap, sw - 0.02, 0.34, 0.05, L.shirt, 0, -0.17, 0.02);
+  }
+  if (L.apron) box(torso, 0.5, 0.7, 0.04, 0xf4f4f4, 0, 0.1, -0.16);
+  if (L.suit) { const lx = sw * 0.34; box(torso, 0.18, 0.5, 0.04, L.shirtUnder || 0xf4f4ee, 0, 0.34, -0.16); box(torso, 0.1, 0.1, 0.05, L.lapel || 0x1b1b22, -lx, 0.52, -0.16); box(torso, 0.1, 0.1, 0.05, L.lapel || 0x1b1b22, lx, 0.52, -0.16); }
+  const arm = x => { const p = grp(rig, x, 1.32, 0); box(p, 0.16, 0.5, 0.18, L.sleeve || L.shirt, 0, -0.25, 0); box(p, 0.14, 0.13, 0.16, L.skin, 0, -0.56, 0); return p; };
+  f.armL = arm(-aw); f.armR = arm(aw);
+  if (L.clipboard) { box(f.armR, 0.34, 0.42, 0.03, 0x8d5a3b, 0, -0.5, -0.12); box(f.armR, 0.28, 0.36, 0.035, 0xfdf6e3, 0, -0.5, -0.125); }
+  if (L.camera) box(f.armR, 0.3, 0.24, 0.3, 0x22223b, 0, -0.55, -0.2);
+  const head = f.head = grp(rig, 0, 1.4, 0);
+  box(head, 0.34, 0.36, 0.34, L.skin, 0, 0.2, 0);
+  // hair: short for male (optionally swept back), a back panel to the shoulders plus side locks for female
+  box(head, 0.38, 0.13, 0.38, L.hair, 0, 0.42, 0.01);
+  if (F) {
+    box(head, 0.42, 0.42, 0.1, L.hair, 0, 0.17, 0.15);
+    box(head, 0.07, 0.3, 0.2, L.hair, -0.205, 0.19, -0.05); box(head, 0.07, 0.3, 0.2, L.hair, 0.205, 0.19, -0.05);
+  } else {
+    box(head, 0.38, 0.32, 0.1, L.hair, 0, 0.26, 0.15);
+    if (L.swept) box(head, 0.3, 0.07, 0.3, L.hair, 0, 0.49, 0.05);
+  }
+  if (L.band) box(head, 0.38, 0.05, 0.38, L.band, 0, 0.36, 0.01);
+  if (L.hat) { box(head, 0.5, 0.05, 0.5, L.hat, 0, 0.47, 0); box(head, 0.34, 0.16, 0.34, L.hat, 0, 0.56, 0); }
+  // face on the front (-Z) side of the head: eyes with pupils, brows, nose, smiling mouth (10 small boxes). Own group so the
+  // hero's face can be skipped while the camera is behind him.
+  const face = f.face = grp(head);
+  const FZ = -0.172, brow = L.brow || tint(L.hair, 0.8), lip = F ? (L.lips || 0xc4505e) : 0x8a3b3b;
+  [-1, 1].forEach(sd => {
+    box(face, 0.075, 0.05, 0.012, 0xffffff, sd * 0.08, 0.235, FZ);
+    box(face, 0.04, 0.045, 0.014, 0x1a1a22, sd * 0.08, 0.235, FZ - 0.004);
+    box(face, 0.09, 0.02, 0.014, brow, sd * 0.08, 0.29, FZ);
+    box(face, 0.022, 0.022, 0.014, lip, sd * 0.052, 0.108, FZ);                    // smile corners
+    if (F) { box(face, 0.09, 0.014, 0.016, 0x1a1a22, sd * 0.08, 0.265, FZ - 0.002); box(face, 0.035, 0.06, 0.04, 0xf5c542, sd * 0.19, 0.0, 0); }   // upper-eye line, earrings
+  });
+  box(face, 0.04, 0.065, 0.05, tint(L.skin, 0.82), 0, 0.17, FZ - 0.012);
+  box(face, 0.09, 0.018, 0.014, lip, 0, 0.095, FZ);
+  if (L.glasses) {   // thin dark rectangular frames
+    const fr = 0x15151a, gz = FZ - 0.006;
+    box(face, 0.31, 0.014, 0.016, fr, 0, 0.272, gz); box(face, 0.012, 0.07, 0.016, fr, 0, 0.2385, gz);
+    [-1, 1].forEach(sd => { box(face, 0.125, 0.012, 0.016, fr, sd * 0.083, 0.205, gz); box(face, 0.012, 0.07, 0.016, fr, sd * 0.145, 0.2385, gz); box(face, 0.01, 0.012, 0.17, fr, sd * 0.172, 0.268, -0.09); });
+  }
+  return f;
+}
+// mode: idle | talk | run | jump | slide | stumble
+function poseFigure(f, mode, phase, t, lean) {
+  const s = Math.sin(phase), rig = f.rig;
+  rig.rotation.set(0, 0, lean || 0); rig.position.set(0, 0, 0);
+  f.legL.rotation.x = 0; f.legR.rotation.x = 0; f.armL.rotation.x = 0; f.armR.rotation.x = 0;
+  f.head.rotation.set(0, 0, 0);
+  if (f.flap) f.flap.rotation.x = -0.15;
+  if (mode === 'run') {
+    f.legL.rotation.x = s * 0.95; f.legR.rotation.x = -s * 0.95;
+    f.armL.rotation.x = -s * 0.95; f.armR.rotation.x = s * 0.95;
+    rig.position.y = Math.abs(s) * 0.08; rig.rotation.x = -0.12;
+    if (f.flap) f.flap.rotation.x = -0.3 - Math.abs(s) * 0.15;
+  } else if (mode === 'jump') {
+    f.legL.rotation.x = 0.9; f.legR.rotation.x = -0.5; f.armL.rotation.x = 2.5; f.armR.rotation.x = 2.5; rig.rotation.x = -0.1;
+    if (f.flap) f.flap.rotation.x = -0.95;
+  } else if (mode === 'slide') {
+    rig.rotation.x = 0.95; rig.position.set(0, 0.12, -0.25);
+    f.legL.rotation.x = 0.2; f.legR.rotation.x = 0.2; f.armL.rotation.x = 1.3; f.armR.rotation.x = 1.3;
+  } else if (mode === 'stumble') {
+    rig.rotation.x = -0.35; rig.rotation.z = Math.sin(t * 38) * 0.18;
+    f.armL.rotation.x = 2.2 + Math.sin(t * 30) * 0.4; f.armR.rotation.x = 2.2 - Math.sin(t * 30) * 0.4;
+    f.legL.rotation.x = 0.5; f.legR.rotation.x = -0.4; f.head.rotation.x = 0.3;
+  } else {
+    rig.position.y = Math.sin(t * 2) * 0.015;
+    f.armL.rotation.x = 0.05; f.armR.rotation.x = -0.05;
+    if (mode === 'talk') { f.armR.rotation.x = 1.0 + Math.sin(t * 5) * 0.35; f.head.rotation.x = Math.sin(t * 4) * 0.08; }
+  }
+}
+
+/* ============================================================
+   WORLD  (road chunks, scenery templates, landmarks, track)
+   ============================================================ */
+const WORLD = { ch: null, chunks: [], tpl: [], tplL: [], tplR: [], roadGeo: null, obs: [], cups: [], figs: [], scen: [], dyn: [], seed: 1, cupKind: null, ownedBase: null, defs: {}, rowsBase: [], rows: [], dynTotal: 0, dynSeen: {}, boss: null };
+
+function clearWorld() {
+  for (let i = world.children.length - 1; i >= 0; i--) world.remove(world.children[i]);
+  owned.geo.forEach(g => g.dispose()); owned.tex.forEach(t => t.dispose()); owned.mat.forEach(m => m.dispose());
+  owned = { geo: [], tex: [], mat: [] };
+  for (const k in signCache) delete signCache[k];
+  Object.assign(WORLD, { chunks: [], tpl: [], tplL: [], tplR: [], roadGeo: null, obs: [], cups: [], figs: [], scen: [], dyn: [], cupKind: null, ownedBase: null, ch: null, boss: null, defs: {}, rowsBase: [], rows: [] });
+}
+function lampPost(g, x, z, th) {
+  const dir = x > 0 ? -1 : 1;
+  cyl(g, 0.07, 0.1, 4.4, 6, th.lampPole || 0x4b5058, x, 2.2, z);
+  box(g, 1.3, 0.1, 0.1, th.lampPole || 0x4b5058, x + dir * 0.6, 4.4, z);
+  box(g, 0.5, 0.14, 0.3, th.lampLight || 0xfff1b0, x + dir * 1.2, 4.3, z);
+}
+function buildRoadChunk(th) {
+  const g = new THREE.Group();
+  box(g, 140, 0.3, CHUNK, th.ground, 0, -0.27, -CHUNK / 2);
+  box(g, 7, 0.2, CHUNK, th.road, 0, -0.1, -CHUNK / 2);
+  [-1, 1].forEach(s => {
+    box(g, 2.3, 0.4, CHUNK, th.curb, s * 4.65, -0.08, -CHUNK / 2);
+    box(g, 0.16, 0.02, CHUNK, th.edge || 0xf5c542, s * 3.3, 0.011, -CHUNK / 2);
+    for (let k = 0; k < CHUNK / 4; k++) box(g, 0.14, 0.02, 2, th.lane, s * 1, 0.012, -(k * 4 + 2));
+  });
+  return bakeGeo(g);
+}
+function buildTemplate(ch, rng, sides) {
+  const g = new THREE.Group(), sc = ch.scenery || {};
+  if (ch.theme.lamps !== false) [-5, -21].forEach(z => sides.forEach(s => lampPost(g, s === 'left' ? -4.7 : 4.7, z, ch.theme)));
+  sides.forEach(side => {
+    const list = sc[side] || [];
+    if (!list.length) return;
+    let z = -rng() * 2;
+    for (;;) {
+      const it = list[Math.floor(rng() * list.length)](rng), w = it.userData.w || 5, zc = z - w / 2;
+      if (zc - w / 2 < -CHUNK) break;
+      it.position.set(side === 'left' ? -(6.4 + rng() * 0.8) : 6.4 + rng() * 0.8, 0, zc);
+      it.rotation.y = side === 'left' ? Math.PI / 2 : -Math.PI / 2;
+      g.add(it);
+      z -= w + 0.8 + rng() * 2.5;
+    }
+  });
+  return g.children.length ? bakeGeo(g) : null;   // null: nothing to draw (adapted chapters use placed scenery)
+}
+function makeBillboard(b) {
+  const g = new THREE.Group();
+  box(g, 0.3, 7, 0.3, 0x555a60, -2.5, 3.5, -0.3); box(g, 0.3, 7, 0.3, 0x555a60, 2.5, 3.5, -0.3);
+  box(g, 6.6, 3.4, 0.3, 0x2a2a2a, 0, 7.4, -0.2);
+  const s = makeSign(b.text, 6.2, 3.0, { bg: b.bg || '#f5c542', fg: b.fg || '#16140f' });
+  s.position.set(0, 7.4, 0.0); g.add(s);
+  const out = bake(g);
+  out.position.set(b.side === 'left' ? -9.5 : 9.5, 0, -b.at);
+  out.rotation.y = b.side === 'left' ? 0.65 : -0.65;
+  return out;
+}
+
+function buildWorld(i) {
+  clearWorld();
+  const ch = CHAPTERS[i], th = ch.theme;
+  WORLD.ch = ch;
+  scene.background = new THREE.Color(th.sky);
+  scene.fog = new THREE.Fog(th.fog ? th.fog[0] : th.sky, th.fog ? th.fog[1] : 40, th.fog ? th.fog[2] : 125);
+  hemi.color.set(th.light.hemi[0]); hemi.groundColor.set(th.light.hemi[1]); hemi.intensity = th.light.hemi[2];
+  sun.color.set(th.light.dir[0]); sun.intensity = th.light.dir[1];
+  sunDisc.material.color.set(th.sunColor || th.light.dir[0]);
+  WORLD.roadGeo = buildRoadChunk(th);
+  const rng = mulberry32(1234 + i * 77);
+  for (let k = 0; k < TPL_COUNT; k++) WORLD.tpl.push(buildTemplate(ch, rng, ['left', 'right']));
+  for (let k = 0; k < 3; k++) { WORLD.tplL.push(buildTemplate(ch, rng, ['left'])); WORLD.tplR.push(buildTemplate(ch, rng, ['right'])); }
+  const hasTpl = WORLD.tpl[0] !== null;
+  for (let k = 0; k < CHUNK_POOL; k++) {
+    const c = new THREE.Group(), road = new THREE.Mesh(WORLD.roadGeo, BAKED), sc = hasTpl ? new THREE.Mesh(WORLD.tpl[0], BAKED) : null;
+    road.receiveShadow = true;
+    c.add(road); if (sc) c.add(sc);
+    c.userData = { k: 1e9, road, sc };
+    world.add(c); WORLD.chunks.push(c);
+  }
+  // landmarks beside each stop (x signed side offset, yaw 0 = front faces +Z as in the chapter contract)
+  (ch.stops || []).forEach(s => {
+    const lm = s.landmark();
+    lm.position.set(s.x, 0, -s.at); lm.rotation.y = s.yaw || 0;
+    world.add(lm);
+    (lm.userData.figures || []).forEach(f => WORLD.figs.push(f));
+  });
+  (ch.billboards || []).forEach(b => world.add(makeBillboard(b)));
+  // placed scenery kinds (contract format): every N metres on a side at an offset, a few shared variants each
+  (ch.sceneryKinds || []).forEach((kd, ki) => {
+    const variants = [];
+    for (let v = 0; v < 3; v++) { try { variants.push(makeKind(kd.build(mulberry32(900 + ki * 31 + v)))); } catch (e) { console.warn('scenery ' + kd.id + ' failed', e); break; } }
+    if (!variants.length) return;
+    const sides = kd.side === 'both' ? [-1, 1] : [kd.side === 'left' ? -1 : 1];
+    sides.forEach((sd, si) => {
+      const ev = Math.max(4, kd.every || 30), phase = ((ki * 37 + si * 53) % 100) / 100 * ev;
+      for (let z = 6 + phase, n = 0; z < ch.length + 80; z += ev, n++) {
+        if ((ch.stops || []).some(st => Math.sign(st.x) === sd && Math.abs(st.at - z) < 12)) continue;   // keep landmark sides clear
+        const m = instantiate(variants[(n * 7 + ki) % variants.length], false);
+        m.position.set(sd * kd.offset, 0, -z); world.add(m);
+        WORLD.scen.push({ z, mesh: m });
+      }
+    });
+  });
+  // obstacle / collectible geometry is shared per kind
+  const defs = {};
+  ch.obstacles.forEach(d => { d.kind = makeKind(d.build()); defs[d.id] = d; });
+  if (ch.collectible) WORLD.cupKind = makeKind(ch.collectible.build());
+  const list = generateTrack(ch, WORLD.seed);
+  list.forEach(e => {
+    if (ch.collectible && e.kind === ch.collectible.id) {
+      addPickup(e.z, e.lane, e.y, false);
+    } else {
+      const def = defs[e.kind], m = instantiate(def.kind, true);
+      m.position.set(LANES[e.lane + 1], 0, -e.z); world.add(m);
+      WORLD.obs.push({ z: e.z, lane: e.lane, kind: e.kind, def, mesh: m, hit: false });
+    }
+  });
+  WORLD.defs = defs;
+  WORLD.rowsBase = trackRows(ch, list);
+  WORLD.rows = WORLD.rowsBase.map(r => ({ z: r.z, clear: r.clear, act: r.act.slice() }));
+  WORLD.cupTotal = WORLD.cups.length; WORLD.dynTotal = 0; WORLD.dynSeen = {};
+  if (ch.boss) {   // a boss stays unbaked (the module animates it) and floats ahead of the hero
+    WORLD.boss = ch.boss.build();
+    WORLD.boss.traverse(o => { if (o.isMesh) o.castShadow = false; });
+    world.add(WORLD.boss);
+  }
+  WORLD.ownedBase = { geo: owned.geo.length, tex: owned.tex.length, mat: owned.mat.length };
+}
+function addPickup(z, lane, y, dyn) {
+  const ch = WORLD.ch, m = instantiate(WORLD.cupKind, false), lift = ch.collectible.lift || 0;
+  m.position.set(LANES[lane + 1], y + lift, -z); world.add(m);
+  const c = { z, lane, y, lift, cy: y + (ch.collectible.cy || 0.4), mesh: m, got: false, dyn: !!dyn };
+  WORLD.cups.push(c);
+  if (dyn) WORLD.dyn.push(m);
+  return c;
+}
+// remove props spawned by chapter hooks during play (they are re-spawned when the hooks replay)
+function clearSpawned() {
+  WORLD.dyn.forEach(o => world.remove(o)); WORLD.dyn.length = 0;
+  WORLD.cups = WORLD.cups.filter(c => !c.dyn);
+  WORLD.obs = WORLD.obs.filter(o => !o.dyn);
+  WORLD.rows = WORLD.rowsBase.map(r => ({ z: r.z, clear: r.clear, act: r.act.slice() }));
+  const b = WORLD.ownedBase;
+  if (!b) return;
+  owned.geo.splice(b.geo).forEach(g => g.dispose()); owned.tex.splice(b.tex).forEach(t => t.dispose()); owned.mat.splice(b.mat).forEach(m => m.dispose());
+}
+// reposition the recycled chunks around the hero (no allocation)
+function updateChunks(dist) {
+  const k0 = Math.floor(dist / CHUNK) - 1, stops = WORLD.ch.stops || [];
+  for (let i = 0; i < CHUNK_POOL; i++) {
+    const k = k0 + i, c = WORLD.chunks[((k % CHUNK_POOL) + CHUNK_POOL) % CHUNK_POOL];
+    if (c.userData.k === k) continue;
+    c.userData.k = k; c.position.z = -k * CHUNK;
+    if (!c.userData.sc) continue;
+    let set = WORLD.tpl;
+    for (const s of stops) if (s.at > k * CHUNK - 20 && s.at < (k + 1) * CHUNK + 20) set = s.x < 0 ? WORLD.tplR : WORLD.tplL;
+    c.userData.sc.geometry = set[(Math.abs(k * 2654435761) >>> 0) % set.length];
+  }
+}
+
+/* ============================================================
+   GAME STATE
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const game = {
+  state: 'title', stateTime: 0, time: 0, chapterIndex: 0, chapter: null, paused: false, auto: false, autoT: 0,
+  meters: Object.assign({}, DEFAULT_METERS), chapterMeters: {}, save: readSave(), menuSel: 0, menuMode: 'main', dialogue: null,
+  unlockAll: /[?&]unlock=1/.test(location.search || ''),
+  fps: 60, changeMeters(d) { if (!d) return; METER_KEYS.forEach(k => { if (d[k]) this.meters[k] = clamp(this.meters[k] + d[k], 0, 100); }); },
+  startDialogue(src, onEnd) { startDialogue(src, onEnd); },
+  completeChapter() { completeChapter(); }, sfx
+};
+// What chapter modules see as `game` (the contract's HOOKS API). The engine's own state stays in `game`.
+// A fresh object is made per chapter so wrappers a module installs (e.g. around addCollect) never leak into the next one.
+const hookHero = { lane: 0, x: 0, y: 0, hearts: 3, object3d: null };
+function makeApi() {
+  const a = {
+    hero: hookHero, meters: game.meters, state: {}, muted: false, scene,
+    get distance() { return run.hero.dist; }, get time() { return run.t; }, get paused() { return game.paused; }, get boss() { return WORLD.boss; },
+    // writable: chapters may nudge the run speed (the engine adds its own easing on top, see tickRun)
+    get speed() { return run.speed; }, set speed(v) { if (!a.muted && typeof v === 'number' && isFinite(v)) run.speed = Math.max(0, v); },
+    say(text) { if (a.muted) return; const b = $('banner'); b.textContent = String(text); b.classList.remove('hide'); run.bannerT = 3.2; },
+    hurt() {
+      if (a.muted || game.state === 'retry') return;
+      run.hearts--; run.invuln = Math.max(run.invuln, 1.2); run.stumble = 0.55; run.shake = 0.6; sfx('hit'); refreshHookHero();
+      burst(run.hero.x, run.hero.y + 0.8, -run.hero.dist, 0xe5484d, 10, 5, 0.16);
+      if (run.hearts <= 0) failRun('');
+    },
+    addCollect(n) { if (!a.muted) run.cups += (n | 0) || 0; },
+    fail(reason) { if (!a.muted) failRun(reason || ''); },
+    // chapter-driven HUD widgets: api.hud.set(id, {label, value | bar (0..1), color}); api.hud.remove(id)
+    hud: { widgets: {}, set(id, o) { this.widgets[id] = o; }, remove(id) { delete this.widgets[id]; } },
+    // place a prop in the world. Kinds: 'collectible' (engine-built pickup), a chapter pickup kind (built by
+    // mechanic.pickup.build), or any kind that comes with an `object`. Unsupported kinds return false and warn once.
+    spawn(o) {
+      const kind = o && o.kind, ch = game.chapter;
+      const lane = clamp((o && o.lane | 0), -1, 1), z = o && o.z != null ? o.z : -((o && o.at) || 0);
+      if (kind === 'collectible') {
+        if (!ch.collectible || !WORLD.cupKind) return false;
+        addPickup(-z, lane, (o.y || 0), true);
+        const key = lane + ':' + Math.round(-z * 10);
+        if (!WORLD.dynSeen[key]) { WORLD.dynSeen[key] = 1; WORLD.dynTotal++; }   // counted once even if a retry re-spawns it
+        return true;
+      }
+      if (WORLD.defs[kind]) {   // one of the chapter's obstacle kinds, placed by the chapter (boss attacks)
+        const def = WORLD.defs[kind], m = instantiate(def.kind, true);
+        m.position.set(LANES[lane + 1], 0, z); world.add(m);
+        WORLD.obs.push({ z: -z, lane, kind, def, mesh: m, hit: false, dyn: true }); WORLD.dyn.push(m);
+        insertRowEntry(WORLD.rows, -z, lane, def);
+        return true;
+      }
+      let obj = o && o.object;
+      if (!(obj && obj.isObject3D) && ch.pickups && ch.pickups[kind]) {
+        try { obj = ch.pickups[kind](o); } catch (e) { warnOnce('spawn-build-' + kind, 'game.spawn: building "' + kind + '" failed: ' + e); return false; }
+      }
+      if (!(obj && obj.isObject3D)) { warnOnce('spawn-none-' + kind, 'game.spawn: kind "' + kind + '" is not supported (no object to place); ignored'); return false; }
+      if (['ruleSign', 'ruleGate', 'prop'].indexOf(kind) < 0 && !(ch.pickups && ch.pickups[kind])) warnOnce('spawn-' + kind, 'game.spawn: unknown kind "' + kind + '", placing its object anyway');
+      const g = bake(obj);
+      g.position.set(LANES[lane + 1], 0, z);
+      world.add(g); WORLD.dyn.push(g);
+      return g;
+    }
+  };
+  return a;
+}
+let api = makeApi();
+function failRun(reason) {
+  run.hearts = Math.max(0, run.hearts);
+  $('retrymsg').textContent = reason || 'Out of hearts! You will restart from the last stop.';
+  setState('retry');
+}
+// call a chapter hook; a broken hook warns once and never crashes the engine. Returns the hook's value.
+const hookWarned = {};
+function warnOnce(key, msg) { if (!hookWarned[key]) { hookWarned[key] = 1; console.warn(msg); } }
+function callHook(name, a1, a2) {
+  const ch = game.chapter, f = ch && ch[name];
+  if (typeof f !== 'function') return undefined;
+  try { return f.call(ch.mod || ch, api, a1, a2); } catch (e) { warnOnce(ch.id + name, 'chapter ' + ch.id + ' ' + name + ' failed: ' + e); return undefined; }
+}
+const run = {
+  hero: newHero(), speed: 0, slow: 1, hearts: 3, cups: 0, invuln: 0, stumble: 0, shake: 0, phase: 'countdown', cd: 3, goT: 0,
+  brake: null, stopIdx: 0, checkpoint: { dist: 0, stopIdx: 0 }, camMix: 0, anim: 0, yaw: 0, dlgStarted: false, lastCount: 4, t: 0, accel: 8, bannerT: 0, camStop: 0, eng: 0, won: 0
+};
+
+// hero figures (one per outfit)
+const heroRoot = new THREE.Group(), heroFigs = { young: makeFigure(OUTFITS.young), jacket: makeFigure(OUTFITS.jacket) };
+heroRoot.add(heroFigs.young.root, heroFigs.jacket.root);
+scene.add(heroRoot);
+let heroFig = heroFigs.young;
+function setOutfit(name) {
+  heroFig = heroFigs[name] || heroFigs.young;
+  heroFigs.young.root.visible = heroFig === heroFigs.young; heroFigs.jacket.root.visible = heroFig === heroFigs.jacket;
+}
+
+// particles + speed streaks (pooled)
+const PART = [], STREAKS = [];
+for (let i = 0; i < 48; i++) {
+  const m = new THREE.Mesh(UNIT, new THREE.MeshBasicMaterial({ color: 0xffffff }));
+  m.visible = false; scene.add(m); PART.push({ m, vx: 0, vy: 0, vz: 0, life: 0, max: 1, size: 0.1 });
+}
+for (let i = 0; i < 8; i++) {
+  const m = new THREE.Mesh(UNIT, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 }));
+  m.scale.set(0.03, 0.03, 2.8); m.visible = false; m.position.set(0, 0, 1e5); scene.add(m); STREAKS.push(m);
+}
+function burst(x, y, z, color, n, spd, size) {
+  let k = 0;
+  for (let i = 0; i < PART.length && k < n; i++) {
+    const p = PART[i];
+    if (p.life > 0) continue;
+    k++;
+    p.life = p.max = 0.45 + Math.random() * 0.3; p.size = size;
+    p.vx = (Math.random() - 0.5) * spd; p.vy = Math.random() * spd; p.vz = (Math.random() - 0.5) * spd;
+    p.m.material.color.setHex(color); p.m.position.set(x, y, z); p.m.visible = true;
+  }
+}
+function updateParticles(dt) {
+  for (const p of PART) {
+    if (p.life <= 0) continue;
+    p.life -= dt;
+    if (p.life <= 0) { p.m.visible = false; continue; }
+    p.vy -= 9 * dt; p.m.position.x += p.vx * dt; p.m.position.y = Math.max(0.03, p.m.position.y + p.vy * dt); p.m.position.z += p.vz * dt;
+    const s = p.size * (p.life / p.max); p.m.scale.set(s, s, s);
+  }
+}
+function updateStreaks(dt, speed01) {
+  const op = clamp((speed01 - 0.3) * 1.2, 0, 0.45), h = run.hero;
+  for (const m of STREAKS) {
+    m.visible = op > 0.02; m.material.opacity = op;
+    if (m.position.z > camera.position.z + 1) m.position.set(h.x + (Math.random() - 0.5) * 14, 0.3 + Math.random() * 4.5, -h.dist - 12 - Math.random() * 40);
+  }
+}
+// boss volley: eight green candles fly from the hero at the boss when a phase is beaten
+const VOLLEY = [];
+for (let i = 0; i < 8; i++) {
+  const m = new THREE.Group();
+  const body = new THREE.Mesh(UNIT, new THREE.MeshBasicMaterial({ color: 0x2bd96b })); body.scale.set(0.22, 0.5, 0.22); m.add(body);
+  const wick = new THREE.Mesh(UNIT, new THREE.MeshBasicMaterial({ color: 0xf5c542 })); wick.scale.set(0.06, 0.4, 0.06); wick.position.y = 0.4; m.add(wick);
+  m.visible = false; scene.add(m); VOLLEY.push({ m, t: -1, delay: 0, from: new THREE.Vector3(), to: new THREE.Vector3() });
+}
+function launchVolley() {
+  const h = run.hero, b = WORLD.boss;
+  VOLLEY.forEach((v, i) => {
+    v.from.set(h.x + (i - 3.5) * 0.12, h.y + 1.4, -h.dist);
+    if (b) v.to.set(b.position.x + (i - 3.5) * 0.7, b.position.y + 4 + (i % 3), b.position.z + 0.6); else v.to.set(0, 5, -h.dist - 40);
+    v.t = 0; v.delay = i * 0.07;
+  });
+  sfx('go');
+}
+function updateVolley(dt) {
+  for (const v of VOLLEY) {
+    if (v.t < 0) continue;
+    v.t += dt;
+    const u = (v.t - v.delay) / 0.75;
+    if (u < 0) { v.m.visible = false; continue; }
+    if (u >= 1) { v.t = -1; v.m.visible = false; burst(v.to.x, v.to.y, v.to.z, 0x2bd96b, 4, 6, 0.25); burst(v.to.x, v.to.y, v.to.z, 0xf5c542, 2, 6, 0.2); run.shake = Math.max(run.shake, 0.25); continue; }
+    // the boss keeps floating ahead of the hero, so aim at where it is now
+    const b = WORLD.boss;
+    if (b) { v.to.z = b.position.z + 0.6; }
+    v.m.visible = true;
+    v.m.position.lerpVectors(v.from, v.to, u); v.m.position.y += Math.sin(Math.PI * u) * 2.2;
+    v.m.rotation.z = u * 9; v.m.rotation.x = -0.4;
+  }
+}
+// "+1" popups (HTML, projected from 3D)
+const POPS = []; const tmpV = new THREE.Vector3();
+for (let i = 0; i < 8; i++) { const el = document.createElement('div'); el.className = 'pop hide'; $('pops').appendChild(el); POPS.push({ el, t: 0, x: 0, y: 0, z: 0 }); }
+function pop(x, y, z, s) {
+  const p = POPS.find(q => q.t <= 0) || POPS[0];
+  p.t = 0.8; p.x = x; p.y = y; p.z = z; p.el.textContent = s; p.el.classList.remove('hide');
+}
+function updatePops(dt) {
+  for (const p of POPS) {
+    if (p.t <= 0) continue;
+    p.t -= dt;
+    if (p.t <= 0) { p.el.classList.add('hide'); continue; }
+    tmpV.set(p.x, p.y + (0.8 - p.t) * 1.2, p.z).project(camera);
+    p.el.style.left = ((tmpV.x * 0.5 + 0.5) * innerWidth) + 'px';
+    p.el.style.top = ((-tmpV.y * 0.5 + 0.5) * innerHeight) + 'px';
+  }
+}
+
+/* ---------- state helpers ---------- */
+function show(id, on) { $(id).classList.toggle('hide', !on); }
+function setState(s) {
+  game.state = s; game.stateTime = 0;
+  show('title', s === 'title'); show('front', s === 'frontpage' || s === 'ending'); show('endcard', s === 'chapterEnd'); show('credits', s === 'credits');
+  show('coming', s === 'comingSoon'); show('retry', s === 'retry');
+  show('hud', s === 'play' || s === 'dialogue' || s === 'retry'); show('dlg', s === 'dialogue');
+  if (s !== 'play') { $('count').textContent = ''; }
+  if (s === 'title') { game.menuMode = 'main'; game.menuSel = 0; buildMenu(); }
+}
+function resetRun(dist, cd) {
+  const r = run, h = r.hero, ch = game.chapter;
+  Object.assign(h, newHero()); h.dist = dist;
+  Object.assign(r, { speed: 0, slow: 1, hearts: 3, invuln: 0, stumble: 0, shake: 0, phase: cd > 0 ? 'countdown' : 'run', cd, goT: 0, brake: null,
+    camMix: 0, yaw: 0, dlgStarted: false, lastCount: Math.ceil(cd) + 1, t: 0 });
+  if (!cd) r.speed = speedAt(ch, dist) * 0.9;
+  r.eng = r.speed;
+  const idx = ch.stops.findIndex(s => s.at > dist + 1);
+  r.stopIdx = idx < 0 ? ch.stops.length : idx;
+  clearSpawned();
+  WORLD.obs.forEach(o => { o.hit = false; o.mesh.visible = true; });
+  WORLD.cups.forEach(c => { if (c.z > dist) c.got = false; });
+  r.cups = WORLD.cups.filter(c => c.got).length;
+  updateChunks(dist); updateHeroVisual(); updateCamera(1, true);
+  startHooks(dist);
+}
+// (Re)start the chapter's hooks with the hero at `dist`. Hooks have no reset call, so after a checkpoint retry they get
+// onStart at that distance plus one silent catch-up onUpdate (no say/hurt/fail/collect), so a hook that tracks gates or
+// doors already passed marks them resolved without penalties.
+function startHooks(dist) {
+  const r = run, h = r.hero;
+  clearSpawned();
+  r.bannerT = 0; $('banner').classList.add('hide');
+  hookHero.lane = h.lane; hookHero.x = h.x; hookHero.y = h.y; hookHero.hearts = r.hearts; hookHero.object3d = heroRoot;
+  api = makeApi();
+  VOLLEY.forEach(v => { v.t = -1; v.m.visible = false; });
+  callHook('onStart');
+  r.won = 0;
+  if (dist <= 0) return;
+  const saved = Object.assign({}, game.meters), savedSpeed = r.speed;
+  api.muted = true;
+  hookHero.lane = hookHero.x = NaN;   // lane unknown during catch-up: gates/doors already passed count as missed/skipped, silently
+  callHook('onUpdate', 1 / 60);
+  api.muted = false;
+  refreshHookHero();
+  r.speed = savedSpeed;
+  r.won = game.chapter.wonCount ? game.chapter.wonCount(api.state) : 0;
+  Object.assign(game.meters, saved);
+}
+// a chapter whose end awards an outfit (ch2: the leather jacket) changes the hero for every later chapter
+function outfitFor(i) {
+  let o = CHAPTERS[i].outfit;
+  for (let j = 0; j < i; j++) if (CHAPTERS[j].awardOutfit) o = CHAPTERS[j].awardOutfit;
+  return o;
+}
+function chapterLabel(ch, i) { const m = /^ch(\d+)$/.exec(ch.id); return m ? 'Chapter ' + m[1] : (i === 0 ? 'Prologue' : 'Chapter ' + i); }
+function loadChapterWorld(i) {
+  $('flines').textContent = '';
+  const ch = CHAPTERS[i];
+  game.chapterIndex = i; game.chapter = ch;
+  if (WORLD.ch !== ch) {
+    WORLD.seed = ((Date.now() & 0xffff) || 1);
+    const m = /[?&]seed=(\d+)/.exec(location.search || '');
+    if (m) WORLD.seed = +m[1];
+    buildWorld(i);
+  }
+  setOutfit(outfitFor(i));
+  resetRun(0, 0);
+  run.checkpoint = { dist: 0, stopIdx: 0, meters: Object.assign({}, game.meters) };
+  const pb = $('pbar');
+  pb.querySelectorAll('.mk').forEach(e => e.remove());
+  ch.stops.forEach(s => { const e = document.createElement('i'); e.className = 'mk'; e.style.left = (s.at / ch.length * 100) + '%'; pb.appendChild(e); });
+  show('meters', !ch.hideMeters);
+  $('fmast').textContent = (ch.frontPage && ch.frontPage.masthead) || 'THE DAILY TICKER';
+  $('fdate').textContent = (ch.dateline || '').toUpperCase();
+  $('fchap').textContent = (chapterLabel(ch, i) + ' \u2022 ' + ch.title).toUpperCase();
+  $('fhead').textContent = ch.frontPage.headline; $('fsub').textContent = ch.frontPage.sub;
+}
+function enterChapter(i) {
+  game.chapterMeters[i] = Object.assign({}, game.meters);
+  loadChapterWorld(i);
+  setState('frontpage');
+}
+function beginRun(dist, cd) { resetRun(dist, cd); game.dialogue = null; setState('play'); }
+function restartChapter() { Object.assign(game.meters, game.chapterMeters[game.chapterIndex] || DEFAULT_METERS); run.checkpoint = { dist: 0, stopIdx: 0, meters: Object.assign({}, game.meters) }; beginRun(0, 3); }
+function retryFromCheckpoint() { Object.assign(game.meters, run.checkpoint.meters || game.chapterMeters[game.chapterIndex] || DEFAULT_METERS); beginRun(run.checkpoint.dist, 3); }
+// chapters with `endings` (the finale) show the matching ending as a newspaper page, then the credits
+function evaluateEnding(ch) {
+  for (const e of ch.endings) {
+    try { if (e.when(game.meters)) return e; } catch (err) { warnOnce(ch.id + 'ending', 'ending test failed: ' + err); }
+  }
+  return ch.endings[ch.endings.length - 1];
+}
+function showEnding(ch) {
+  const e = evaluateEnding(ch);
+  game.ending = e;
+  $('fmast').textContent = (ch.frontPage && ch.frontPage.masthead) || 'THE DAILY TICKER';
+  $('fdate').textContent = (ch.dateline || '').toUpperCase();
+  $('fchap').textContent = ('FINAL EDITION \u2022 ' + e.title).toUpperCase();
+  $('fhead').textContent = e.frontPage.headline; $('fsub').textContent = e.frontPage.sub;
+  const box = $('flines'); box.textContent = '';
+  (e.lines || []).forEach(l => { const p = document.createElement('p'); p.textContent = l; box.appendChild(p); });
+  setState('ending');
+}
+function goNext() {
+  const n = game.chapterIndex + 1, cur = CHAPTERS[game.chapterIndex];
+  if (n >= CHAPTERS.length && cur.endings && cur.endings.length) { showEnding(cur); return; }
+  if (n < CHAPTERS.length) enterChapter(n);
+  else {
+    const m = /^ch(\d+)$/.exec(CHAPTERS[CHAPTERS.length - 1].id);
+    $('cmsg1').textContent = 'Chapter ' + (m ? +m[1] + 1 : n) + ' is being built.';
+    setState('comingSoon');
+  }
+}
+function completeChapter() {
+  const prev = game.save ? game.save.unlocked : 0;
+  game.save = { unlocked: Math.max(prev, game.chapterIndex + 1), meters: Object.assign({}, game.meters) };
+  writeSave(game.save.unlocked, game.save.meters);
+  const e = game.chapter.endCard;
+  $('etitle').textContent = e.title;
+  const box = $('elines'); box.textContent = '';
+  const nx = CHAPTERS[game.chapterIndex + 1];
+  const nextTxt = nx ? chapterLabel(nx, game.chapterIndex + 1) + ' \u2014 ' + nx.title : 'more chapters coming soon';
+  e.lines.forEach(s => { const p = document.createElement('p'); p.textContent = s.replace('{cups}', run.cups).replace('{cupsTotal}', WORLD.cupTotal + WORLD.dynTotal).replace('{next}', nextTxt); box.appendChild(p); });
+  const base = game.chapterMeters[game.chapterIndex] || DEFAULT_METERS;
+  $('emeters').textContent = game.chapter.hideMeters ? '' : METER_KEYS.map(k => {
+    const d = Math.round(game.meters[k] - base[k]);
+    return METER_LABELS[k] + ' ' + Math.round(game.meters[k]) + (d ? ' (' + (d > 0 ? '+' : '-') + Math.abs(d) + ')' : '');
+  }).join('   \u00b7   ');
+  if (game.chapter.awardOutfit) setOutfit(game.chapter.awardOutfit);
+  sfx('fanfare');
+  setState('chapterEnd');
+}
+function newGame() { Object.assign(game.meters, DEFAULT_METERS); game.chapterMeters = {}; enterChapter(0); }
+function continueGame() {
+  const s = game.save;
+  Object.assign(game.meters, DEFAULT_METERS, s.meters || {});
+  game.chapterMeters = {};
+  if (s.unlocked >= CHAPTERS.length) { game.chapterIndex = CHAPTERS.length - 1; goNext(); } else enterChapter(s.unlocked);
+}
+// chapters selectable from the title screen: everything up to the save's next chapter (all with ?unlock=1)
+function maxUnlocked() { return game.unlockAll ? CHAPTERS.length - 1 : Math.min(CHAPTERS.length - 1, game.save ? game.save.unlocked : 0); }
+function menuItems() {
+  if (game.menuMode === 'chapters') {
+    const L = [];
+    for (let i = 0; i <= maxUnlocked(); i++) L.push({ label: chapterLabel(CHAPTERS[i], i) + ' \u2014 ' + CHAPTERS[i].title, act: () => selectChapter(i) });
+    L.push({ label: 'Back', act: () => { game.menuMode = 'main'; game.menuSel = 0; buildMenu(); } });
+    return L;
+  }
+  const L = [{ label: 'New Game', act: newGame }];
+  if (game.save) L.push({ label: 'Continue', act: continueGame });
+  if (game.save || game.unlockAll) L.push({ label: 'Chapters', act: () => { game.menuMode = 'chapters'; game.menuSel = 0; buildMenu(); } });
+  return L;
+}
+function selectChapter(i) {
+  Object.assign(game.meters, DEFAULT_METERS, (game.save && game.save.meters) || {});
+  game.chapterMeters = {};
+  enterChapter(i);
+}
+function menuPick(i) { sfx('select'); const it = menuItems()[i]; if (it) it.act(); }
+function buildMenu() {
+  const m = $('menu'); m.textContent = '';
+  const items = menuItems();
+  m.classList.toggle('small', items.length > 4);
+  items.forEach((it, i) => {
+    const d = document.createElement('div'); d.className = 'item btn' + (i === game.menuSel ? ' sel' : ''); d.textContent = it.label;
+    d.addEventListener('click', () => { if (game.state === 'title') menuPick(i); });
+    m.appendChild(d);
+  });
+}
+
+/* ---------- dialogue (HTML overlay) ---------- */
+function startDialogue(src, onEnd) {
+  const nodes = typeof src === 'string' ? game.chapter.dialogues[src] : src;
+  game.dialogue = { nodes, onEnd, idx: 0, node: null, chars: 0, sel: 0, shown: -1, choicesShown: false };
+  setState('dialogue');
+  enterNode(0);
+}
+function enterNode(i) {
+  const d = game.dialogue;
+  d.idx = i; d.node = d.nodes[i]; d.chars = 0; d.sel = 0; d.shown = -1; d.choicesShown = false;
+  $('dname').textContent = d.node.speaker || ''; $('dname').classList.toggle('hide', !d.node.speaker);
+  $('dtext').textContent = ''; $('dchoices').textContent = ''; show('dnext', false);
+}
+function dialogueDone() { return game.dialogue.chars >= game.dialogue.node.text.length; }
+function advanceDialogue(nextId) {
+  const d = game.dialogue;
+  let i = d.idx + 1;
+  if (d.node.end) { endDialogue(); return; }
+  if (nextId != null) {
+    i = d.nodes.findIndex(n => n.id === nextId);
+    if (i < 0 && game.chapter.dialogues[nextId]) { d.nodes = game.chapter.dialogues[nextId]; enterNode(0); return; }   // `next` may name another dialogue
+  }
+  if (i < 0 || i >= d.nodes.length) endDialogue(); else enterNode(i);
+}
+function endDialogue() {
+  const cb = game.dialogue.onEnd;
+  game.dialogue = null;
+  setState('play');
+  if (cb) cb(game);
+}
+function pickChoice(k) {
+  if (game.state !== 'dialogue') return;
+  const d = game.dialogue, c = d.node.choices && d.node.choices[k];
+  if (!c || !d.choicesShown) return;
+  sfx('select'); game.changeMeters(c.effects); advanceDialogue(c.next);
+}
+function dialogueAct() {
+  const d = game.dialogue;
+  if (!dialogueDone()) { d.chars = d.node.text.length; return; }
+  if (d.node.choices) pickChoice(d.sel); else advanceDialogue(d.node.next);
+}
+function updateDialogue(dt) {
+  const d = game.dialogue, n = d.node;
+  if (game.auto) { game.autoT += dt; if (game.autoT > 0.15) d.chars = n.text.length; }
+  if (!dialogueDone()) {
+    const before = Math.floor(d.chars);
+    d.chars = Math.min(n.text.length, d.chars + 45 * dt);
+    const after = Math.floor(d.chars);
+    if (after > before && after % 2 === 0 && n.text[after - 1] !== ' ') sfx('blip');
+  }
+  const k = Math.floor(d.chars);
+  if (k !== d.shown) { d.shown = k; $('dtext').textContent = n.text.slice(0, k); }
+  if (dialogueDone() && !d.choicesShown) {
+    d.choicesShown = true;
+    if (n.choices) {
+      const box = $('dchoices');
+      n.choices.forEach((c, i) => {
+        const e = document.createElement('div'); e.className = 'btn'; e.textContent = (i + 1) + '. ' + c.text;
+        e.addEventListener('click', () => pickChoice(i));
+        box.appendChild(e);
+      });
+    } else show('dnext', true);
+  }
+  if (n.choices && d.choicesShown) {
+    if (input.pressed.up) d.sel = (d.sel + n.choices.length - 1) % n.choices.length;
+    if (input.pressed.down) d.sel = (d.sel + 1) % n.choices.length;
+    if (game.auto && game.autoT > 0.5) { d.sel = 0; input.pressed.act = true; }
+    $('dchoices').childNodes.forEach((e, i) => e.classList.toggle('sel', i === d.sel));
+    if (input.pressed.n1) pickChoice(0); else if (input.pressed.n2) pickChoice(1);
+  } else if (game.auto && game.autoT > 0.5 && d.choicesShown) input.pressed.act = true;
+  const still = game.state === 'dialogue' && game.dialogue === d && d.node === n;
+  if (still && (input.pressed.act || input.pressed.space || input.pressed.tap)) { dialogueAct(); game.autoT = game.auto ? 0.3 : 0; }
+}
+
+/* ---------- run simulation ---------- */
+function stopFinished() {
+  const r = run, stops = game.chapter.stops;
+  if (r.stopIdx >= stops.length - 1) { completeChapter(); return; }
+  r.stopIdx++; r.phase = 'resuming';
+}
+function takeHit(o) {
+  const r = run, h = r.hero;
+  o.hit = true; o.mesh.visible = false;
+  // chapter hook first: returning true means "absorbed" - no damage, the obstacle is simply removed
+  if (callHook('onHit', { kind: o.def.id, id: o.def.id, type: o.def.type, lane: o.lane, z: o.z }) === true) {
+    sfx('select'); burst(o.def.type === 'mover' ? o.mesh.position.x : LANES[o.lane + 1], 1.0, -o.z, 0x76b900, 14, 5, 0.18);
+    pop(LANES[o.lane + 1], 2.0, -o.z, 'POP!');
+    return;
+  }
+  const cut = r.eng * 0.4; r.eng -= cut; r.speed = Math.max(0, r.speed - cut);
+  r.hearts--; r.invuln = 1.2; r.stumble = 0.55; r.shake = 0.6; r.slow = 0.6;
+  sfx('hit');
+  burst(h.x, h.y + 0.8, -h.dist, 0xe5484d, 10, 5, 0.16);
+  if (r.hearts <= 0) setState('retry');
+}
+// which side (-1 left / +1 right) a stop's landmark is on
+function stopSide(s) { return s && s.x < 0 ? -1 : 1; }
+function refreshHookHero() { const h = run.hero; hookHero.lane = h.lane; hookHero.x = h.x; hookHero.y = h.y; hookHero.hearts = run.hearts; }
+function tickRun(dt) {
+  const r = run, h = r.hero, ch = game.chapter, stops = ch.stops;
+  r.t += dt; r.anim += dt * (6 + r.speed * 0.55);
+  r.invuln = Math.max(0, r.invuln - dt); r.stumble = Math.max(0, r.stumble - dt); r.shake = Math.max(0, r.shake - dt * 2);
+  const span = (ch.speed.max - ch.speed.base) || 1, speed01 = clamp((r.speed - ch.speed.base) / span, 0, 1);
+  let hooked = false;
+  switch (r.phase) {
+    case 'countdown': {
+      r.cd -= dt;
+      const n = Math.ceil(r.cd);
+      if (n !== r.lastCount && n > 0) { r.lastCount = n; $('count').textContent = String(n); sfx('tick'); }
+      if (r.cd <= 0) { r.phase = 'run'; r.speed = r.eng = speedAt(ch, h.dist) * 0.6; $('count').textContent = 'GO!'; r.goT = 0.7; sfx('go'); }
+      break;
+    }
+    case 'run': {
+      if (r.goT > 0) { r.goT -= dt; if (r.goT <= 0) $('count').textContent = ''; }
+      // r.eng is the engine's own eased speed; r.speed = eng + whatever chapter hooks added/capped (their changes persist)
+      const e0 = r.eng;
+      r.eng += clamp(speedAt(ch, h.dist) * r.slow - r.eng, -14 * dt, r.accel * dt);
+      r.speed = Math.max(0, r.speed + (r.eng - e0));
+      r.slow = Math.min(1, r.slow + dt * 0.5);
+      refreshHookHero();
+      callHook('onUpdate', dt); hooked = true;   // before moving, so a chapter's speed cap/bonus applies to this very step
+      h.dist += r.speed * dt;
+      const s = stops[r.stopIdx];
+      if (s && s.at - h.dist <= 0.75 * r.speed + 0.05) {
+        r.phase = 'stopping';
+        r.brake = { v0: r.speed, d0: h.dist, t: 0, Tb: Math.max(0.6, 2 * (s.at - h.dist) / Math.max(r.speed, 1)) };
+      }
+      break;
+    }
+    case 'stopping': {
+      const b = r.brake; b.t = Math.min(b.Tb, b.t + dt);
+      h.dist = b.d0 + b.v0 * (b.t - b.t * b.t / (2 * b.Tb)); r.speed = r.eng = b.v0 * (1 - b.t / b.Tb);
+      const sd = stopSide(stops[r.stopIdx]);
+      if (h.laneT >= 1 && h.lane !== sd) requestLane(h, sd - h.lane);
+      if (b.t >= b.Tb && h.lane === sd && h.laneT >= 1 && h.jumpT === 0) {
+        h.dist = stops[r.stopIdx].at; r.speed = r.eng = 0; r.phase = 'stop'; r.dlgStarted = false; r.camStop = r.stopIdx;
+        r.checkpoint = { dist: h.dist, stopIdx: r.stopIdx + 1, meters: Object.assign({}, game.meters) };
+        api.say(stops[r.stopIdx].title);
+      }
+      break;
+    }
+    case 'stop':
+      r.camMix = Math.min(1, r.camMix + dt * 0.9); r.yaw = lerp(r.yaw, -1.1 * stopSide(stops[r.stopIdx]), Math.min(1, dt * 4));
+      if (r.camMix >= 1 && !r.dlgStarted && game.state === 'play') { r.dlgStarted = true; game.autoT = 0; startDialogue(stops[r.stopIdx].dialogueId, stopFinished); }
+      break;
+    case 'resuming':
+      r.camMix = Math.max(0, r.camMix - dt * 1.3); r.yaw = lerp(r.yaw, 0, Math.min(1, dt * 6));
+      if (r.camMix <= 0.02) { r.camMix = 0; r.yaw = 0; r.phase = 'run'; r.speed = r.eng = 0; }
+      break;
+  }
+  stepHero(h, dt);
+  // events -> sound / dust
+  for (let i = 0; i < h.ev.length; i++) {
+    const e = h.ev[i];
+    sfx(e);
+    if (e === 'land') burst(h.x, 0.05, -h.dist, 0xd8cfae, 6, 2.2, 0.14);
+  }
+  h.ev.length = 0;
+  if (r.phase === 'run' || r.phase === 'stopping') {
+    for (const c of WORLD.cups) {
+      if (c.got || Math.abs(c.z - h.dist) > 1.2) continue;
+      const cy = c.cy, top = h.y + (h.slideT > 0 ? HERO.hSlide : HERO.h);
+      if (Math.abs(LANES[c.lane + 1] - h.x) < 0.85 && Math.abs(c.z - h.dist) < 0.9 && cy > h.y - 0.1 && cy < top + 0.15) {
+        c.got = true; api.addCollect(1); callHook('onCollect'); sfx('collect');
+        burst(LANES[c.lane + 1], c.cy, -c.z, 0xf5c542, 8, 4, 0.12);
+        pop(LANES[c.lane + 1], c.cy + 0.6, -c.z, '+1');
+      }
+    }
+  }
+  if (r.phase === 'run' && r.invuln <= 0) {
+    for (const o of WORLD.obs) {
+      if (o.hit || Math.abs(o.z - h.dist) > 3) continue;
+      if (heroHits(h, o, r.t)) { takeHit(o); break; }
+    }
+  }
+  // visibility window + animated props
+  const fogFar = (ch.theme.fog && ch.theme.fog[2]) || 130, sceneEnd = fogFar + 12, propEnd = Math.min(140, fogFar + 12);   // beyond the fog nothing is visible, so don't draw it
+  for (const o of WORLD.obs) {
+    o.mesh.visible = !o.hit && o.z > h.dist - 8 && o.z < h.dist + propEnd;
+    if (o.def.type === 'mover') o.mesh.position.x = moverX(o, r.t);
+  }
+  for (const c of WORLD.cups) {
+    c.mesh.visible = !c.got && c.z > h.dist - 8 && c.z < h.dist + propEnd;
+    c.mesh.rotation.y = r.t * 3 + c.z; c.mesh.position.y = c.y + c.lift + Math.sin(r.t * 4 + c.z) * 0.06;
+  }
+  for (const sc of WORLD.scen) sc.mesh.visible = sc.z > h.dist - 25 && sc.z < h.dist + sceneEnd;
+  refreshHookHero();
+  if (!hooked && r.phase !== 'countdown') callHook('onUpdate', dt);
+  METER_KEYS.forEach(k => { game.meters[k] = clamp(game.meters[k], 0, 100); });
+  if (r.bannerT > 0) { r.bannerT -= dt; if (r.bannerT <= 0) $('banner').classList.add('hide'); }
+  if (r.phase === 'run' && game.state === 'play') music.update(speed01);
+  updateChunks(h.dist);
+  updateHeroVisual();
+  updateCamera(dt, false);
+  if (WORLD.boss) WORLD.boss.position.set(0, 0, -(h.dist + 42));
+  if (ch.wonCount) { const n = ch.wonCount(api.state); if (n > run.won) launchVolley(); run.won = n; }
+  updateVolley(dt);
+  updateParticles(dt); updateStreaks(dt, speed01); updatePops(dt);
+  WORLD.figs.forEach((f, i) => poseFigure(f, game.state === 'dialogue' && i === 0 ? 'talk' : 'idle', 0, game.time + i, 0));
+  updateHUD();
+}
+function updateHeroVisual() {
+  const r = run, h = r.hero;
+  heroRoot.position.set(h.x, h.y, -h.dist); heroRoot.rotation.y = r.yaw;
+  heroRoot.visible = !(r.invuln > 0 && Math.floor(r.invuln / 0.08) % 2 === 0);
+  heroFig.face.visible = (game.state !== 'play' && game.state !== 'retry') || r.camMix > 0.05;   // nobody sees it from behind
+  const idle = r.phase === 'countdown' || r.phase === 'stop';
+  const mode = r.stumble > 0 ? 'stumble' : h.jumpT > 0 ? 'jump' : h.slideT > 0 ? 'slide' : idle ? (game.state === 'dialogue' ? 'talk' : 'idle') : 'run';
+  poseFigure(heroFig, mode, r.anim, game.time, -(LANES[h.lane + 1] - h.x) * 0.22);
+}
+function updateCamera(dt, snap) {
+  const r = run, h = r.hero, th = smooth(r.camMix), hz = -h.dist, ch = game.chapter;
+  const span = (ch.speed.max - ch.speed.base) || 1, f01 = clamp((r.speed - ch.speed.base) / span, 0, 1);
+  const sx = r.shake > 0 ? (Math.random() - 0.5) * r.shake * 0.5 : 0, sy = r.shake > 0 ? (Math.random() - 0.5) * r.shake * 0.4 : 0;
+  // stop view: 'front' swings round ahead of the hero; 'behind' (chapter-module landmarks, fronts face +Z) stays on the +Z side
+  const st = ch.stops[r.camStop] || {}, sd = stopSide(st), bh = st.view === 'behind';
+  const px = bh ? h.x - 2.8 * sd : h.x - 3.6 * sd, py = bh ? 2.1 : 2.0, pz = bh ? hz + 5.6 : hz - 5.0;
+  const lx = bh ? h.x + ((st.x || 0) - h.x) * 0.5 : h.x + 2.6 * sd, ly = bh ? 1.5 : 1.4, lz = bh ? hz - 0.8 : hz - 0.6;
+  camera.position.set(lerp(h.x * 0.65, px, th) + sx, lerp(3.4, py, th) + sy, lerp(hz + 6.6, pz, th));
+  camera.lookAt(lerp(h.x * 0.45, lx, th), lerp(1.2, ly, th), lerp(hz - 9, lz, th));
+  const fov = lerp(60 + 9 * f01, 54, th);
+  if (snap) camera.fov = fov; else camera.fov = lerp(camera.fov, fov, Math.min(1, dt * 3));
+  camera.updateProjectionMatrix();
+  sun.position.set(h.x + sunOffset.x, sunOffset.y, hz + sunOffset.z); sun.target.position.set(h.x, 0, hz);
+  sunDisc.position.set(camera.position.x - 40, 28, camera.position.z - 175);
+}
+const hud = { hearts: -1, cups: '', prompt: '', mp: '', widgets: '' };
+// hero aura (shield-style effects); chapters switch it on via ch.auraFrom(state) -> colour | null
+const aura = new THREE.Mesh(new THREE.SphereGeometry(1.1, 12, 8), new THREE.MeshBasicMaterial({ color: 0x76b900, transparent: true, opacity: 0.28, depthWrite: false }));
+aura.position.y = 0.95; aura.visible = false; heroRoot.add(aura);
+// chapter widgets: api.hud.set(...) + ch.hudFrom(state, api) (module state -> widgets) + the generic state.hud text line
+function collectWidgets() {
+  const ch = game.chapter, out = {};
+  if (typeof api.state.hud === 'string') out.hud = { text: api.state.hud };
+  if (ch.hudFrom) { try { Object.assign(out, ch.hudFrom(api.state, api) || {}); } catch (e) { warnOnce(ch.id + 'hudFrom', 'chapter ' + ch.id + ' HUD failed: ' + e); } }
+  Object.assign(out, api.hud.widgets);
+  return out;
+}
+function updateWidgets() {
+  const list = collectWidgets(), ids = Object.keys(list);
+  const sig = ids.map(id => { const w = list[id]; return id + '|' + (w.text || '') + '|' + (w.label || '') + '|' + (w.value == null ? '' : w.value) + '|' + (w.bar == null ? '' : Math.round(clamp(w.bar, 0, 1) * 100)) + '|' + (w.color || ''); }).join('~');
+  if (sig === hud.widgets) return;
+  hud.widgets = sig;
+  const box = $('widgets'); box.textContent = '';
+  ids.forEach(id => {
+    const w = list[id], d = document.createElement('div');
+    d.className = 'w' + (w.text ? ' big' : '');
+    if (w.text) { d.textContent = w.text; if (w.color) { d.style.color = w.color; d.style.borderLeftColor = w.color; } }
+    else {
+      const sp = document.createElement('span'); sp.textContent = (w.label || '') + (w.value != null ? ': ' : ''); d.appendChild(sp);
+      if (w.value != null) { const v = document.createElement('em'); v.textContent = String(w.value); d.appendChild(v); }
+      if (w.bar != null) {
+        const bar = document.createElement('i'), fill = document.createElement('b');
+        fill.style.width = Math.round(clamp(w.bar, 0, 1) * 100) + '%'; if (w.color) fill.style.background = w.color;
+        bar.appendChild(fill); d.appendChild(bar);
+      }
+    }
+    box.appendChild(d);
+  });
+}
+function updateHUD() {
+  const r = run, ch = game.chapter;
+  if (hud.hearts !== r.hearts) {
+    hud.hearts = r.hearts;
+    $('hearts').innerHTML = [0, 1, 2].map(i => '<span class="' + (i < r.hearts ? 'on' : 'off') + '">♥</span>').join('');
+  }
+  const c = '☕ ' + r.cups + '/' + (WORLD.cupTotal + WORLD.dynTotal);
+  if (hud.cups !== c) { hud.cups = c; $('cups').textContent = c; }
+  const pct = clamp(r.hero.dist / ch.length, 0, 1) * 100 + '%';
+  $('phero').style.left = pct; $('pfill').style.width = pct;
+  let p = '';
+  if (r.phase === 'run') { const t = (ch.tutorial || []).find(q => r.hero.dist >= q.at && r.hero.dist < q.until); if (t) p = t.text; }
+  if (hud.prompt !== p) { hud.prompt = p; $('prompt').textContent = p; }
+  if (!ch.hideMeters) {
+    const m = METER_KEYS.map(k => game.meters[k]).join(',');
+    if (hud.mp !== m) {
+      hud.mp = m;
+      $('meters').innerHTML = METER_KEYS.map(k => '<div><span>' + METER_LABELS[k] + '</span><i><b style="width:' + game.meters[k] + '%"></b></i></div>').join('');
+    }
+  }
+  $('hint').classList.toggle('hide', !(isTouch && game.state === 'play' && game.stateTime < 12));
+  updateWidgets();
+  const ac = ch.auraFrom ? ch.auraFrom(api.state) : null;
+  aura.visible = !!ac;
+  if (ac) { aura.material.color.set(ac); const k = 1 + Math.sin(r.t * 8) * 0.06; aura.scale.set(k, k, k); }
+}
+function tickTitle(dt) {
+  const a = Math.sin(game.time * 0.4) * 0.75, h = run.hero;   // the hero faces -Z; the camera drifts in an arc in front of him
+  heroRoot.position.set(0, 0, 0); heroRoot.rotation.y = 0; heroRoot.visible = true; heroFig.face.visible = true;
+  poseFigure(heroFig, 'talk', 0, game.time, 0);
+  camera.position.set(Math.sin(a) * 4.0 + 0.3, 1.65, -Math.cos(a) * 4.0);
+  camera.lookAt(0.9, 1.45, 0);   // hero sits right of the menu
+  camera.fov = 52; camera.updateProjectionMatrix();
+  sun.position.set(7, 14, 6); sun.target.position.set(0, 0, 0);
+  sunDisc.position.set(camera.position.x - 40, 28, camera.position.z - 175);
+  updateChunks(0);
+  h.dist = 0;
+}
+
+/* ---------- main update ---------- */
+function update(dt) {
+  game.stateTime += dt; game.time += dt;
+  if (input.pressed.mute) audio.muted = !audio.muted;
+  if (input.pressed.pause && (game.state === 'play' || game.state === 'dialogue')) { game.paused = !game.paused; show('pause', game.paused); }
+  if (game.paused) { input.endStep(); return; }
+  switch (game.state) {
+    case 'title': {
+      const n = menuItems().length;
+      if (input.pressed.up || input.pressed.down) { game.menuSel = (game.menuSel + (input.pressed.up ? n - 1 : 1)) % n; sfx('select'); buildMenu(); }
+      if (input.pressed.back && game.menuMode === 'chapters') { game.menuMode = 'main'; game.menuSel = 0; buildMenu(); }
+      tickTitle(dt);
+      if (input.confirm() && game.stateTime > 0.2) menuPick(game.menuSel % n);
+      break;
+    }
+    case 'frontpage':
+      tickTitleIdle(dt);
+      if (game.stateTime > 0.3 && input.confirm()) { sfx('select'); beginRun(0, 3); }
+      break;
+    case 'play': {
+      const r = run, h = r.hero;
+      if (input.pressed.restart) { restartChapter(); break; }
+      if (r.phase === 'run') {
+        if (game.auto) applyBot(h, botDecide(h, WORLD.rows, r.speed, game.chapter.gates, game.noChase ? null : WORLD.cups));
+        if (input.pressed.left) requestLane(h, -1);
+        if (input.pressed.right) requestLane(h, 1);
+        if (input.pressed.jump) h.jumpBuf = BUF_T;
+        if (input.pressed.slide) h.slideBuf = BUF_T;
+      }
+      tickRun(dt);
+      break;
+    }
+    case 'dialogue':
+      if (input.pressed.restart) { restartChapter(); break; }
+      tickRun(dt);
+      if (game.state === 'dialogue') updateDialogue(dt);
+      break;
+    case 'retry':
+      tickTitleIdle(dt);
+      if ((game.stateTime > 0.4 && input.confirm()) || (game.auto && game.stateTime > 1)) { sfx('select'); retryFromCheckpoint(); }
+      if (input.pressed.restart) restartChapter();
+      break;
+    case 'chapterEnd':
+      tickTitleIdle(dt);
+      if ((game.stateTime > 0.6 && input.confirm()) || (game.auto && game.stateTime > 1.5)) { sfx('select'); goNext(); }
+      break;
+    case 'ending':
+      tickTitle(dt);
+      if (game.stateTime > 0.6 && input.confirm()) { sfx('select'); setState('credits'); }
+      break;
+    case 'credits':
+      tickTitle(dt);
+      if (game.stateTime > 0.6 && input.confirm()) { sfx('select'); setState('title'); }
+      break;
+    case 'comingSoon':
+      tickTitleIdle(dt);
+      if (input.pressed.restart) { newGame(); }
+      else if (game.stateTime > 0.3 && input.confirm()) setState('title');
+      break;
+  }
+  input.endStep();
+}
+// non-interactive states keep the scene alive (hero idles, camera still)
+function tickTitleIdle(dt) {
+  if (game.state === 'frontpage') { tickTitle(dt); return; }
+  poseFigure(heroFig, game.state === 'retry' ? 'stumble' : 'idle', 0, game.time, 0);
+  updateParticles(dt); updatePops(dt);
+}
+
+/* ============================================================
+   CHAPTERS  (registry: push one object per chapter)
+   Fields: id, title, dateline, outfit, hideMeters, length (metres, = last stop),
+   speed {base,max}, tutorialEnd, tutorial [{at,until,text,obstacle?}], frontPage,
+   theme, scenery {left[],right[]} (fn(rng) -> Group, userData.w = width along road),
+   obstacles [{id,type,w,d,h,y0?,build}], collectible {id,build}, billboards,
+   stops [{at,side,landmark,title,dialogueId}], dialogues, endCard, onStart/onUpdate.
+   ============================================================ */
+const CHAPTERS = [];
+
+/* ----- prologue builders ----- */
+function shopB(rng) {
+  const g = new THREE.Group(); g.userData.w = 6.6;
+  const pal = [0xf4e3c1, 0xf2a7a1, 0x9fd4c8, 0xf6d68a, 0xc9b2e8, 0xe9c9a0], acc = [0xe5484d, 0x2f8f5b, 0x2b6cb0, 0xd98a1c];
+  const c = pal[Math.floor(rng() * pal.length)], a = acc[Math.floor(rng() * acc.length)], h = 3 + rng() * 1.6;
+  box(g, 6.2, h, 5, c, 0, h / 2, -2.5);
+  box(g, 6.5, 0.3, 5.3, 0x6b5a4a, 0, h + 0.15, -2.5);
+  box(g, 6.2, 0.12, 1.3, a, 0, 2.5, 0.6);
+  box(g, 3, 0.6, 0.15, a, 0, h - 0.45, 0.08); box(g, 2.6, 0.3, 0.16, 0xffffff, 0, h - 0.45, 0.09);
+  box(g, 1.0, 2.0, 0.1, 0x5a3d2b, 0, 1.0, 0.05);
+  box(g, 1.8, 1.3, 0.1, 0x7fb7d6, -1.9, 1.4, 0.05); box(g, 1.8, 1.3, 0.1, 0x7fb7d6, 1.9, 1.4, 0.05);
+  return g;
+}
+function palmB(rng) {
+  const g = new THREE.Group(); g.userData.w = 3;
+  const t = cyl(g, 0.12, 0.2, 3.4, 6, 0x8a6a45, 0, 1.7, 0); t.rotation.z = (rng() - 0.5) * 0.12;
+  for (let i = 0; i < 7; i++) {
+    const p = grp(g, 0, 3.4, 0); p.rotation.y = i * 0.9 + rng() * 0.3;
+    box(p, 1.7, 0.06, 0.5, i % 2 ? 0x3f9a4a : 0x4fae55, 0.85, 0, 0).rotation.z = -0.35;
+  }
+  box(g, 0.25, 0.25, 0.25, 0x6b4a2a, 0.2, 3.25, 0.1);
+  return g;
+}
+function carB(rng) {
+  const g = new THREE.Group(); g.userData.w = 4.8;
+  const cols = [0xd9534f, 0x3b7dd8, 0xf2f2ea, 0x2f8f5b, 0xf0c040], c = cols[Math.floor(rng() * cols.length)];
+  box(g, 4.2, 0.7, 1.9, c, 0, 0.6, -1.0); box(g, 2.2, 0.6, 1.7, 0xcfe6f2, -0.2, 1.25, -1.0); box(g, 2.0, 0.1, 1.6, c, -0.2, 1.6, -1.0);
+  [-1.4, 1.4].forEach(x => [-0.1, -1.9].forEach(z => { cyl(g, 0.34, 0.34, 0.25, 8, 0x1e1e1e, x, 0.34, z).rotation.x = Math.PI / 2; }));
+  box(g, 0.1, 0.18, 0.4, 0xfff1b0, 2.1, 0.7, -0.4);
+  return g;
+}
+function bushB(rng) {
+  const g = new THREE.Group(); g.userData.w = 2.2;
+  box(g, 1.8, 0.9, 1.4, 0x4f9a4a, 0, 0.45, -0.8); box(g, 1.4, 0.4, 1.0, 0x63b25a, 0, 1.0, -0.8);
+  if (rng() > 0.5) { box(g, 0.2, 0.2, 0.2, 0xe5484d, 0.5, 1.2, -0.2); box(g, 0.2, 0.2, 0.2, 0xf5c542, -0.4, 0.9, -0.15); }
+  return g;
+}
+function coneB() {
+  const g = new THREE.Group();
+  box(g, 0.6, 0.06, 0.6, 0x333333, 0, 0.03, 0);
+  cyl(g, 0.05, 0.25, 0.74, 8, 0xff7a1a, 0, 0.43, 0); cyl(g, 0.12, 0.16, 0.12, 8, 0xffffff, 0, 0.42, 0);
+  return g;
+}
+function paperboxB() {
+  const g = new THREE.Group();
+  box(g, 0.14, 0.2, 0.5, 0x555555, -0.3, 0.1, 0); box(g, 0.14, 0.2, 0.5, 0x555555, 0.3, 0.1, 0);
+  box(g, 0.8, 0.65, 0.6, 0x2f6fd0, 0, 0.5, 0); box(g, 0.84, 0.08, 0.64, 0x1e4a99, 0, 0.86, 0);
+  box(g, 0.5, 0.3, 0.05, 0xdde7f2, 0, 0.58, 0.31);
+  return g;
+}
+function barrierB() {
+  const g = new THREE.Group();
+  box(g, 0.1, 1.1, 0.1, 0xcccccc, -0.8, 0.55, 0); box(g, 0.1, 1.1, 0.1, 0xcccccc, 0.8, 0.55, 0);
+  box(g, 1.8, 0.8, 0.12, 0xffffff, 0, 1.5, 0);
+  for (let i = 0; i < 6; i++) box(g, 0.15, 0.8, 0.13, 0xff7a1a, -0.75 + i * 0.3, 1.5, 0);
+  box(g, 0.2, 0.2, 0.2, 0xf5c542, -0.8, 2.0, 0); box(g, 0.2, 0.2, 0.2, 0xf5c542, 0.8, 2.0, 0);
+  return g;
+}
+function vanB() {
+  const g = new THREE.Group();
+  box(g, 1.7, 1.4, 3.2, 0xf2f2ea, 0, 0.95, 0); box(g, 1.72, 0.25, 3.22, 0xe5484d, 0, 0.8, 0);
+  box(g, 1.5, 0.55, 0.1, 0x7fb7d6, 0, 1.45, 1.6); box(g, 0.3, 0.15, 0.1, 0xfff1b0, -0.55, 0.55, 1.62); box(g, 0.3, 0.15, 0.1, 0xfff1b0, 0.55, 0.55, 1.62);
+  [-0.85, 0.85].forEach(x => [-1.0, 1.0].forEach(z => { cyl(g, 0.32, 0.32, 0.22, 8, 0x1e1e1e, x, 0.32, z).rotation.z = Math.PI / 2; }));
+  return g;
+}
+function trolleyB() {
+  const g = new THREE.Group();
+  box(g, 0.7, 0.08, 0.9, 0x888888, 0, 0.3, 0); box(g, 0.7, 0.4, 0.9, 0xbfc5cc, 0, 0.55, 0); box(g, 0.74, 0.06, 0.94, 0x8a949a, 0, 0.78, 0);
+  box(g, 0.7, 0.05, 0.05, 0x555555, 0, 0.9, 0.5);
+  [-0.28, 0.28].forEach(x => [-0.38, 0.38].forEach(z => box(g, 0.1, 0.18, 0.1, 0x222222, x, 0.15, z)));
+  return g;
+}
+function cupB() {
+  const g = new THREE.Group(), s = grp(g); s.scale.set(1.5, 1.5, 1.5);
+  cyl(s, 0.27, 0.27, 0.04, 8, 0xffffff, 0, 0.12, 0); cyl(s, 0.17, 0.12, 0.26, 8, 0xfff7e0, 0, 0.27, 0);
+  cyl(s, 0.15, 0.15, 0.02, 8, 0x5a3418, 0, 0.4, 0); box(s, 0.07, 0.12, 0.04, 0xfff7e0, 0.2, 0.28, 0);
+  box(s, 0.34, 0.05, 0.3, 0xf5c542, 0, 0.27, 0);
+  return g;
+}
+function payphoneLandmark() {
+  const s = new THREE.Group();
+  box(s, 1.4, 0.15, 1.4, 0x777777, 0, 0.075, -0.7);
+  [-0.65, 0.65].forEach(x => [-0.1, -1.3].forEach(z => box(s, 0.1, 2.5, 0.1, 0xe5484d, x, 1.25, z)));
+  box(s, 1.3, 2.1, 0.05, 0xa8d8ea, 0, 1.3, -1.35); box(s, 0.05, 2.1, 1.2, 0xa8d8ea, -0.65, 1.3, -0.7); box(s, 0.05, 2.1, 1.2, 0xa8d8ea, 0.65, 1.3, -0.7);
+  box(s, 1.6, 0.15, 1.6, 0xe5484d, 0, 2.6, -0.7);
+  box(s, 0.5, 0.7, 0.2, 0x2b2b2b, 0, 1.3, -1.2); box(s, 0.12, 0.45, 0.1, 0x111111, -0.2, 1.35, -1.07); box(s, 0.3, 0.2, 0.04, 0xbbbbbb, 0.05, 1.25, -1.09);
+  const sg = makeSign('PHONE', 1.0, 0.4, { bg: '#2f6fd0' }); sg.position.set(0, 2.85, -0.4); s.add(sg);
+  return bake(s);
+}
+function dotLandmark() {
+  const s = new THREE.Group();
+  box(s, 1.8, 0.12, 0.5, 0x8a5a2c, 0, 0.5, -0.4); box(s, 1.8, 0.5, 0.08, 0x8a5a2c, 0, 0.85, -0.65);
+  box(s, 0.1, 0.5, 0.4, 0x4a3a2a, -0.8, 0.25, -0.4); box(s, 0.1, 0.5, 0.4, 0x4a3a2a, 0.8, 0.25, -0.4);
+  cyl(s, 0.4, 0.4, 0.05, 8, 0xeeeeee, 1.6, 0.8, -0.4); cyl(s, 0.05, 0.05, 0.8, 6, 0x888888, 1.6, 0.4, -0.4);
+  cyl(s, 0.09, 0.07, 0.12, 8, 0xffffff, 1.5, 0.89, -0.4); cyl(s, 0.09, 0.07, 0.12, 8, 0xffffff, 1.72, 0.89, -0.3);
+  box(s, 0.05, 1.2, 0.05, 0x555555, -1.6, 0.6, -0.3);
+  const sg = makeSign('COFFEE\nBREAK', 1.3, 0.9, { bg: '#22302a', fg: '#f5c542' }); sg.position.set(-1.6, 1.4, -0.25); s.add(sg);
+  const lm = bake(s);
+  const dot = makeFigure({ look: 'female', skin: 0xe8b890, hair: 0xc78a3a, shirt: 0xe5484d, sleeve: 0xe5484d, pants: 0xe5484d, shoe: 0xeeeeee, apron: true, band: 0xf4f4f4 });
+  dot.root.position.set(-0.4, 0, 1.4); dot.root.rotation.y = Math.PI; lm.add(dot.root);
+  lm.userData.figures = [dot];
+  return lm;
+}
+function dinerLandmark() {
+  const s = new THREE.Group(), cx = -4;
+  box(s, 12, 3.6, 7, 0xf0e8d0, cx, 1.8, -3.5); box(s, 12.1, 0.55, 7.1, 0xe5484d, cx, 1.1, -3.5);
+  box(s, 12.8, 0.3, 7.8, 0x333a40, cx, 3.75, -3.5); box(s, 12.8, 0.25, 0.25, 0xf5c542, cx, 3.55, 0.3);
+  box(s, 7, 1.3, 0.1, 0x8fd0e8, cx - 2.2, 2.2, 0.03); box(s, 7, 0.08, 0.12, 0xffffff, cx - 2.2, 2.2, 0.04);
+  box(s, 1.5, 2.3, 0.1, 0x7a3a2a, -1.2, 1.15, 0.04); box(s, 0.9, 1.0, 0.12, 0x8fd0e8, -1.2, 1.6, 0.06);
+  box(s, 6.4, 0.14, 1.3, 0xe5484d, cx - 2.2, 2.9, 0.65);
+  box(s, 0.25, 2.2, 0.25, 0x555a60, cx - 1.5, 4.8, -0.6); box(s, 0.25, 2.2, 0.25, 0x555a60, cx + 1.5, 4.8, -0.6);
+  box(s, 6.2, 2.2, 0.3, 0x2a2a2a, cx, 6.2, -0.7);
+  const big = makeSign('DINER', 5.8, 1.9, { bg: '#e5484d', fg: '#fff6d8' }); big.position.set(cx, 6.2, -0.5); big.rotation.y = 0.7; s.add(big);
+  const open = makeSign('OPEN', 1.3, 0.5, { bg: '#0b0f0c', fg: '#76b900' }); open.position.set(-1.2, 2.75, 0.12); s.add(open);
+  const lm = bake(s);
+  const chris = makeFigure({ skin: 0xe8b890, hair: 0x3a2a1a, shirt: 0x4d7a3a, sleeve: 0x4d7a3a, pants: 0x4a4a52, shoe: 0x222222, glasses: true });
+  const curtis = makeFigure({ skin: 0xe8b890, hair: 0x8a5a2a, shirt: 0x6a7ab0, sleeve: 0x6a7ab0, pants: 0x3a3a44, shoe: 0x222222 });
+  chris.root.position.set(-2.2, 0, 1.5); chris.root.rotation.y = Math.PI - 0.3; curtis.root.position.set(-3.5, 0, 1.4); curtis.root.rotation.y = Math.PI + 0.3;
+  lm.add(chris.root, curtis.root);
+  lm.userData.figures = [chris, curtis];
+  return lm;
+}
+
+CHAPTERS.push({
+  id: 'prologue',
+  title: 'Late for the Diner',
+  dateline: 'San Jose, 1993',
+  outfit: 'young',
+  hideMeters: true,
+  length: 520,
+  speed: { base: 10, max: 14 },
+  tutorialEnd: 64,
+  frontPage: {
+    masthead: 'THE DAILY TICKER',
+    headline: 'THREE ENGINEERS OCCUPY DINER BOOTH, ORDER ONLY COFFEE',
+    sub: 'Management ‘cautiously optimistic’ they will leave by 1994.'
+  },
+  theme: {
+    sky: 0xf6c58a, fog: [0xf3c08a, 45, 130], ground: 0x86ad5c, road: 0x4a4d55, lane: 0xf4f0e0, curb: 0xcfc7b4, edge: 0xf5c542, sunColor: 0xffdc8a,
+    light: { hemi: [0xffe7c4, 0x8a7a5a, 0.65], dir: [0xffc27a, 0.8] }
+  },
+  scenery: {
+    left: [shopB, shopB, palmB, carB, bushB, shopB, palmB],
+    right: [shopB, palmB, shopB, carB, bushB, palmB, shopB]
+  },
+  obstacles: [
+    { id: 'cone', type: 'low', w: 0.6, d: 0.6, h: 0.8, build: coneB },
+    { id: 'paperbox', type: 'low', w: 0.85, d: 0.7, h: 0.9, build: paperboxB },
+    { id: 'barrier', type: 'high', w: 1.8, d: 0.5, y0: 1.1, h: 0.9, build: barrierB },
+    { id: 'van', type: 'block', w: 1.8, d: 3.2, h: 1.8, build: vanB },
+    { id: 'trolley', type: 'mover', w: 0.8, d: 1.0, h: 0.9, build: trolleyB }
+  ],
+  collectible: { id: 'cup', build: cupB },
+  cupDensity: 0.4,
+  tutorial: [
+    { at: 4, until: 29, text: '← →  change lane', obstacle: { z: 30, lanes: [0], kind: 'van' } },
+    { at: 31, until: 43, text: 'SPACE  jump', obstacle: { z: 44, lanes: [-1, 0, 1], kind: 'cone' } },
+    { at: 46, until: 55, text: '↓  slide', obstacle: { z: 57, lanes: [-1, 0, 1], kind: 'barrier' } }
+  ],
+  billboards: [
+    { at: 95, side: 'right', text: 'MODEMS!\nNOW 14.4K', bg: '#f5c542', fg: '#16140f' },
+    { at: 230, side: 'left', text: 'COFFEE:\nA FOOD GROUP', bg: '#2b6cb0', fg: '#ffffff' },
+    { at: 270, side: 'right', text: 'BE KIND,\nREWIND', bg: '#e5484d', fg: '#ffffff' },
+    { at: 420, side: 'left', text: 'NOW IN\nCOLOR TV!', bg: '#2f8f5b', fg: '#ffffff' }
+  ],
+  stops: [
+    { at: 150, x: 5.6, yaw: -Math.PI / 2, view: 'front', title: 'Payphone', landmark: payphoneLandmark, dialogueId: 'payphone' },
+    { at: 330, x: 5.6, yaw: -Math.PI / 2, view: 'front', title: 'Dot', landmark: dotLandmark, dialogueId: 'dot' },
+    { at: 520, x: 5.6, yaw: -Math.PI / 2, view: 'front', title: 'The Diner', landmark: dinerLandmark, dialogueId: 'founding' }
+  ],
+  dialogues: {
+    payphone: [
+      { speaker: 'Jensen', text: 'Hello? Diner? Put Chris on, please. I’m running late.' },
+      { speaker: 'Chris', text: 'We got the booth. Curtis is drawing on the napkins again.' },
+      { speaker: 'Jensen', text: 'Tell him napkins are not a whiteboard.' },
+      { speaker: 'Chris', text: 'He says they are now. Hurry up, the coffee is getting cold.', end: true }
+    ],
+    dot: [
+      { speaker: 'Jensen', text: 'Dot! Is our booth still ours?' },
+      { speaker: 'Dot', text: 'You three have been here since breakfast, hon. More coffee?' },
+      { speaker: 'Jensen', text: 'Always. Keep it coming.' },
+      { speaker: 'Dot', text: 'Go on, they’re waiting. And mind that shopping trolley, it has a mind of its own.', end: true }
+    ],
+    founding: [
+      { speaker: 'Jensen', text: 'Gentlemen. I have a napkin and a dangerous amount of coffee.' },
+      { speaker: 'Chris', text: 'Please tell me the napkin has a plan on it.' },
+      { speaker: 'Curtis', text: 'It has a graphics chip. And a syrup stain.' },
+      { speaker: 'Jensen', text: 'The syrup is load-bearing. Computers should draw pictures way faster, and I know how.' },
+      { speaker: 'Chris', text: 'We sketch the whole chip right here? On a napkin?' },
+      { speaker: 'Curtis', text: 'Cheaper than a whiteboard. And Dot keeps the coffee coming.' },
+      { speaker: 'Jensen', text: 'So. Are we actually doing this?', choices: [
+        { text: 'Let’s build graphics chips.', next: 'founded' },
+        { text: 'Let’s finish the pancakes first.', next: 'pancakes' }
+      ] },
+      { id: 'pancakes', speaker: 'Curtis', text: 'Fair. Nobody ever founded a company on an empty stomach. Or a cold pancake.' },
+      { id: 'founded', speaker: 'Chris', text: 'Then it is settled. We shake on it, right over the syrup.' },
+      { speaker: 'Jensen', text: 'To the company! We will think of a name later. Probably on another napkin.', end: true }
+    ]
+  },
+  onStart(g) { /* hook: runs when the chapter loads */ },
+  onUpdate(g, dt) { /* hook: runs every play tick */ },
+  endCard: {
+    title: 'COMPANY FOUNDED',
+    lines: ['Starting cash: $40,000', 'Coffee cups: {cups}/{cupsTotal}', 'Next: {next}']
+  }
+});
+
+/* ============================================================
+   CHAPTER MODULE ADAPTER
+   Chapter modules (chapters/chN/chapter.js, bundled by build.js into window.CHAPTER_FACTORIES) follow the content
+   contract in chapters/common.md. adaptChapter() turns one into this engine's internal chapter format.
+   ============================================================ */
+const KIT = {
+  textPlane(text, o) { o = o || {}; return makeSign(text, o.w || 2, o.h || 1, { bg: o.bg, fg: o.fg }); },
+  // 1.8m person facing +Z (contract), built from the same rig as the hero. Unknown accessories are ignored.
+  person(o) {
+    o = o || {};
+    const L = { look: o.look === 'female' ? 'female' : 'male', skin: o.skin || 0xe8b890, hair: o.hair || 0x2b1b12, shirt: o.top || 0x666666, sleeve: o.top || 0x666666, pants: o.bottom || 0x333344, shoe: 0x222222 };
+    (Array.isArray(o.accessory) ? o.accessory : [o.accessory]).forEach(a => {
+      if (a === 'glasses') L.glasses = true;
+      else if (a === 'tie') L.tie = 0xe5484d;
+      else if (a === 'suit') L.suit = true;
+      else if (a === 'hat') L.hat = 0x333344;
+      else if (a === 'clipboard') L.clipboard = true;
+      else if (a === 'camera') L.camera = true;
+      else if (a === 'jacket') { L.jacket = true; L.collar = 0x2a2d32; L.tee = 0x24262c; L.swept = true; }
+    });
+    const f = makeFigure(L), g = new THREE.Group();
+    f.root.rotation.y = Math.PI;
+    g.add(f.root);
+    return g;
+  }
+};
+// underside of the part a hero standing in the lane centre can actually touch (side posts that reach the ground don't count)
+function openingMinY(group) {
+  let y = Infinity;
+  group.traverse(o => {
+    if (!o.isMesh) return;
+    const b = new THREE.Box3().setFromObject(o);
+    if (b.max.x > -0.4 && b.min.x < 0.4 && b.min.y < y) y = b.min.y;
+  });
+  return y === Infinity ? 0 : y;
+}
+function measure(group) {
+  group.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(group);
+  return { minY: b.min.y, openY: openingMinY(group), maxY: b.max.y, w: 2 * Math.max(Math.abs(b.min.x), Math.abs(b.max.x)), d: 2 * Math.max(Math.abs(b.min.z), Math.abs(b.max.z)) };
+}
+function adaptChapter(mod) {
+  const th = mod.theme || {}, W = msg => console.warn('chapter ' + mod.id + ': ' + msg);
+  const road = new THREE.Color(th.road || '#444444');
+  const ch = {
+    id: mod.id, title: mod.title, dateline: mod.dateline, outfit: mod.outfit === 'young' ? 'young' : 'jacket', hideMeters: !!mod.hideMeters,
+    length: mod.length, speed: { base: mod.speed.base, max: mod.speed.max }, tutorialEnd: 0, tutorial: [],
+    frontPage: Object.assign({ masthead: 'THE DAILY TICKER' }, mod.frontPage),
+    theme: {
+      sky: th.sky || '#88aacc', fog: [th.fog || th.sky || '#88aacc', th.fogNear || 40, th.fogFar || 130],
+      ground: th.ground || '#556655', road: th.road || '#444444', lane: th.laneLine || '#ffffff', edge: th.laneLine || '#ffffff',
+      curb: '#' + road.clone().multiplyScalar(1.4).getHexString(), sunColor: th.lightColor || '#ffffff', lamps: false,
+      light: { hemi: [th.ambient || '#aabbcc', th.ground || '#444444', 0.7], dir: [th.lightColor || '#ffffff', (th.lightIntensity == null ? 0.9 : th.lightIntensity) * 0.9] }
+    },
+    scenery: { left: [], right: [] },
+    sceneryKinds: (mod.scenery || []).filter(k => k && typeof k.build === 'function'),
+    obstacles: [], billboards: [], dialogues: mod.dialogues || {}, mod, gates: [], reserved: [], cupDensity: 0.3,
+    onStart: typeof mod.onStart === 'function' ? mod.onStart : null, onUpdate: typeof mod.onUpdate === 'function' ? mod.onUpdate : null,
+    // optional generic hooks: onCollect(game) per pickup, onHit(game, obstacle) before damage (true = absorbed)
+    onCollect: typeof mod.onCollect === 'function' ? mod.onCollect : null, onHit: typeof mod.onHit === 'function' ? mod.onHit : null,
+    pickups: {}, hudFrom: null, auraFrom: null, awardOutfit: null, wonCount: null,
+    boss: mod.boss && typeof mod.boss.build === 'function' ? mod.boss : null,
+    endings: Array.isArray(mod.endings) && mod.endings.length ? mod.endings : null
+  };
+  ch.noTrack = !!ch.boss;   // boss chapters spawn their own attacks and pickups through game.spawn
+  // chapter-specific props the engine builds on request (game.spawn({kind})): mechanic.pickup = {kind, build(arg)}
+  if (mod.mechanic && mod.mechanic.pickup && typeof mod.mechanic.pickup.build === 'function') ch.pickups[mod.mechanic.pickup.kind] = mod.mechanic.pickup.build;
+  // obstacles: sizes are MEASURED from the built geometry (declared sizes are not trusted)
+  (mod.obstacles || []).forEach(o => {
+    try {
+      const m = measure(o.build());
+      let y0 = 0, h = m.maxY;
+      if (o.type === 'high') {
+        y0 = m.openY; h = m.maxY - m.openY;
+        if (y0 < 0.6) { W('high obstacle "' + o.id + '" reaches y=' + y0.toFixed(2) + ' in the lane centre (< 0.6); treating underside as 1.0'); y0 = 1.0; h = Math.max(0.3, m.maxY - 1.0); }
+      }
+      if (m.w > 2.0) W('obstacle "' + o.id + '" is ' + m.w.toFixed(2) + 'm wide (> 2.0)');
+      ch.obstacles.push({ id: o.id, type: o.type, weight: o.weight || 1, w: Math.max(0.3, m.w), d: Math.max(0.2, m.d), h: Math.max(0.2, h), y0, build: o.build });
+    } catch (e) { W('obstacle "' + (o && o.id) + '" skipped: ' + e); }
+  });
+  if (mod.collectible && mod.collectible.build) {
+    const m = measure(mod.collectible.build()), centred = m.minY < -0.1;
+    ch.collectible = { id: 'collect', name: mod.collectible.name, build: mod.collectible.build, lift: centred ? 0.5 : 0, cy: (centred ? 0.5 : 0) + (m.minY + m.maxY) / 2 };
+  }
+  ch.stops = (mod.stops || []).map(s => ({
+    at: s.at, title: s.title, dialogueId: s.dialogueId, x: s.landmark && typeof s.landmark.x === 'number' ? s.landmark.x : 5.5, yaw: 0, view: 'behind',
+    landmark: () => bake(s.landmark.build())
+  }));
+  // rule-gate style mechanics publish their schedule in mechanic.params.gates: [{at, lane}]. The track keeps every lane clear
+  // from 14m before to 12m after a gate, and around its sign (30m before), so the open lane is always passable.
+  const gates = mod.mechanic && mod.mechanic.params && mod.mechanic.params.gates;
+  if (Array.isArray(gates)) {
+    const lead = (mod.mechanic.params.signLead) || 30;
+    gates.forEach(g => {
+      ch.gates.push({ at: g.at, lane: g.lane });
+      ch.reserved.push({ z0: g.at - 14, z1: g.at + 12, lane: null }, { z0: g.at - lead - 4, z1: g.at - lead + 4, lane: null });
+    });
+    ch.gates.sort((a, b) => a.at - b.at);
+  }
+  // optional pickups that stand in a lane at a distance (committee doors): keep the road clear around them; the autopilot takes them
+  const doors = mod.mechanic && mod.mechanic.params && mod.mechanic.params.doors;
+  if (Array.isArray(doors)) {
+    const keep = (mod.mechanic.params.keepClear) || 15;
+    doors.forEach(d => { ch.gates.push({ at: d.at, lane: d.lane, optional: true }); ch.reserved.push({ z0: d.at - keep, z1: d.at + 8, lane: null }); });
+    ch.gates.sort((a, b) => a.at - b.at);
+  }
+  // HUD: modules publish plain state (state.hud text, or their own keys); these map it to widgets. Unknown chapters just use state.hud / api.hud.
+  const prm = (mod.mechanic && mod.mechanic.params) || {};
+  const HUDS = {
+    ch3: st => st.panicChapter === 'ch3' ? { panic: { label: 'PANIC', value: Math.round(st.panic) + '%', bar: st.panic / (prm.max || 100), color: st.panic >= (prm.warnAt || 75) ? '#e5484d' : '#f5c542' } } : {},
+    ch5: st => {
+      const f = st.factCheck; if (!f) return {};
+      const o = { streak: { label: 'FACT CHECK STREAK', value: f.streak + '/' + (prm.streakNeeded || 5) } };
+      if (f.active) o.shield = { label: 'FACT CHECK SHIELD', value: f.shieldLeft.toFixed(1) + 's', bar: f.shieldLeft / (prm.shieldSeconds || 5), color: '#76b900' };
+      return o;
+    },
+    ch6: st => {
+      const v = st.viral; if (!v) return {};
+      return { views: { text: v.label }, hits: { label: 'HITS', value: v.hits }, context: { label: 'CONTEXT', value: v.tokens } };
+    },
+    ch8: st => {
+      const t = st.ch8; if (!t || t.phase < 0) return {};
+      const n = (prm.phases || []).length || 3, need = t.need || 8, won = t.beaten.filter(Boolean).length;
+      const hp = 1 - (won * need + (t.beaten[t.phase] ? 0 : t.count)) / (n * need);
+      return {
+        boss: { label: 'THE TICKER', value: 'PHASE ' + (t.phase + 1) + '/' + n + (t.phaseName ? ' ' + t.phaseName : ''), bar: hp, color: '#e5484d' },
+        candles: { label: 'GREEN CANDLES', value: (t.beaten[t.phase] ? need : t.count) + '/' + need }
+      };
+    },
+    ch7: st => {
+      const t = st.ch7; if (!t) return {};
+      const o = { doors: { label: 'COMMITTEES BRIEFED', value: t.entered + '/' + t.doorsShown } };
+      if (t.speedCap) o.slow = { label: 'SPEED CAP', value: t.speedCap + ' m/s', color: '#e5484d' };
+      return o;
+    }
+  };
+  if (HUDS[mod.id]) ch.hudFrom = HUDS[mod.id];
+  if (ch.boss) ch.wonCount = st => st.ch8 ? st.ch8.beaten.filter(Boolean).length : 0;
+  if (mod.id === 'ch5') ch.auraFrom = st => st.factCheck && st.factCheck.active ? '#76b900' : null;
+  // end card is read when the chapter ends (modules such as ch2 rewrite their lines during play)
+  const collName = (mod.collectible && mod.collectible.name) || 'Collected';
+  const awards = (mod.endCard && mod.endCard.lines || []).some(l => /black leather jacket/i.test(l));
+  if (awards) ch.awardOutfit = 'jacket';
+  Object.defineProperty(ch, 'endCard', { enumerable: true, get() {
+    const e = mod.endCard || { title: 'CHAPTER COMPLETE', lines: [] }, lines = e.lines.slice();
+    if (!lines.some(l => /\{cups\}/.test(l))) lines.push(collName + ': {cups}/{cupsTotal}');
+    lines.push('Next: {next}');
+    return { title: e.title, lines };
+  } });
+  return ch;
+}
+(window.CHAPTER_FACTORIES || []).forEach(f => {
+  try { CHAPTERS.push(adaptChapter(f.factory(THREE, KIT))); } catch (e) { console.warn('chapter ' + f.id + ' failed to load', e); }
+});
+
+/* ============================================================
+   MAIN LOOP + DEBUG HOOK
+   ============================================================ */
+let lastT = performance.now(), acc = 0, fpsT = 0, fpsN = 0;
+function frame(now) {
+  const dt = Math.min(0.25, (now - lastT) / 1000);
+  lastT = now; acc += dt; fpsT += dt; fpsN++;
+  if (fpsT >= 0.5) { game.fps = fpsN / fpsT; fpsT = 0; fpsN = 0; }
+  while (acc >= DT) { update(DT); acc -= DT; }
+  if (renderer) renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+
+loadChapterWorld(0);
+setOutfit('jacket');
+setState('title');
+(function initFromUrl() {
+  const q = new URLSearchParams(location.search || '');
+  if (q.get('auto') === '1') game.auto = true;
+  if (q.has('ch')) {
+    const i = +q.get('ch');
+    if (CHAPTERS[i]) { enterChapter(i); beginRun(+q.get('at') || 0, 0); }
+  }
+})();
+$('hint').textContent = 'Swipe left / right / up / down to move \u00b7 tap to advance';
+requestAnimationFrame(frame);
+
+window.__game = {
+  get state() { return game.state; },
+  get chapterIndex() { return game.chapterIndex; },
+  get meters() { return game.meters; },
+  get hero() { return Object.assign({}, run.hero, { hearts: run.hearts, speed: run.speed, cups: run.cups, phase: run.phase }); },
+  get distance() { return run.hero.dist; },
+  gotoChapter(i) {
+    if (!CHAPTERS[i]) { game.chapterIndex = CHAPTERS.length - 1; goNext(); return; }
+    enterChapter(i); beginRun(0, 3);
+  },
+  completeChapter() { completeChapter(); },
+  setAutopilot(b) { game.auto = !!b; },
+  stats() {
+    let objects = 0;
+    scene.traverse(o => { if (o.visible) objects++; });
+    return { fps: Math.round(game.fps), drawCalls: renderer ? renderer.info.render.calls : 0, objects };
+  }
+};
+</script>
+<script src="extras.js"></script>
+</body>
+</html>

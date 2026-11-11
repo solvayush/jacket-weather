@@ -1,0 +1,8 @@
+.claude/
+.DS_Store
+chapters/*.build.txt
+chapters/*.review.txt
+chapters/*.fix.txt
+chapters/*.brief.md
+chapters/*.report.txt
+chapters/*.sh
